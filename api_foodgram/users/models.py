@@ -19,3 +19,25 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+
+class Subscription(models.Model):
+    """Table settings for user subscriptions."""
+
+    subscriber = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="subscriber",
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="author",
+    )
+
+    class Meta:
+        constraints = (
+            models.UniqueConstraint(
+                fields=["subscriber", "author"], name="unique_subscription"
+            ),
+        )

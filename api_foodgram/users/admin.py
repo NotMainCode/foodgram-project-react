@@ -3,11 +3,36 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from users.models import User
+from users.models import Subscription, User
+
+
+class StaffAllowedModelAdmin(admin.ModelAdmin):
+    """The staff is allowed access to the Admin site."""
+
+    @staticmethod
+    def check_perm(user):
+        if user.is_active and (user.is_staff or user.is_superuser):
+            return True
+        return False
+
+    def has_module_permission(self, request):
+        return self.check_perm(request.user)
+
+    def has_view_permission(self, request, obj=None):
+        return self.check_perm(request.user)
+
+    def has_add_permission(self, request):
+        return self.check_perm(request.user)
+
+    def has_change_permission(self, request, obj=None):
+        return self.check_perm(request.user)
+
+    def has_delete_permission(self, request, obj=None):
+        return self.check_perm(request.user)
 
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
+class StaffAllowedUserAdmin(UserAdmin, StaffAllowedModelAdmin):
     """Table settings for resource 'Users' on the admin site."""
 
     def get_queryset(self, request):
@@ -20,20 +45,6 @@ class CustomUserAdmin(UserAdmin):
         if ordering:
             qs = qs.order_by(*ordering)
         return qs
-
-    def has_module_permission(self, request):
-        return True
-
-    def has_add_permission(self, request):
-        return True
-
-    def has_change_permission(self, request, obj=None):
-        return True
-
-    def has_delete_permission(self, request, obj=None):
-        if obj is not None and obj == request.user:
-            return False
-        return True
 
     def get_form(self, request, obj=None, **kwargs):
         """Restrict access to fields of forms  for non-superusers."""
@@ -84,3 +95,15 @@ class CustomUserAdmin(UserAdmin):
     )
     activate_users.short_description = "Activate Users"
     deactivate_users.short_description = "Deactivate Users"
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(StaffAllowedModelAdmin):
+    """Table settings for resource 'Subscription' on the admin site."""
+
+    list_display = (
+        "pk",
+        "subscriber",
+        "author",
+    )
+    search_fields = ("subscriber",)

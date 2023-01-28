@@ -102,7 +102,7 @@ class Recipe(models.Model):
     )
     ingredients = models.ManyToManyField(
         Ingredient,
-        through="AmountIngredient",
+        through="RecipeIngredients",
         related_name="recipes",
         verbose_name="Ingredients",
         help_text="Add ingredient",
@@ -121,7 +121,7 @@ class Recipe(models.Model):
         return self.name
 
 
-class AmountIngredient(models.Model):
+class RecipeIngredients(models.Model):
     """Intermediary model for amount of ingredient in recipe."""
 
     recipe = models.ForeignKey(

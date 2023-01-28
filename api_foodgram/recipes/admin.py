@@ -6,7 +6,7 @@ from recipes.models import (
     Favorite,
     Ingredient,
     Recipe,
-    AmountIngredient,
+    RecipeIngredients,
     ShoppingCart,
     Tag,
 )
@@ -38,8 +38,9 @@ class TagAdmin(StaffAllowedModelAdmin):
     search_fields = ("name",)
 
 
-class AmountIngredientInline(admin.TabularInline):
-    model = AmountIngredient
+class RecipeIngredientsInline(admin.TabularInline):
+    model = RecipeIngredients
+    min_num = 1
     extra = 5
 
 
@@ -54,7 +55,7 @@ class RecipeAdmin(StaffAllowedModelAdmin):
         "cooking_time",
     )
     inlines = [
-        AmountIngredientInline,
+        RecipeIngredientsInline,
     ]
     filter_horizontal = ("tags",)
     search_fields = ("author", "name", "tags")

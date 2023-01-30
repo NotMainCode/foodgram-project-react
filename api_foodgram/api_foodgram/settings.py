@@ -24,6 +24,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework.authtoken",
+    "djoser",
     "users.apps.UsersConfig",
     "recipes",
     "api",
@@ -99,9 +101,44 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Redefining the 'User' model
 AUTH_USER_MODEL = "users.User"
 
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 4,
+}
+
 # Debug mode settings
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
     MIDDLEWARE.append(
         "debug_toolbar.middleware.DebugToolbarMiddleware",
     )
+    REST_FRAMEWORK.update(
+        {
+            "DEFAULT_AUTHENTICATION_CLASSES": [
+                "rest_framework.authentication.TokenAuthentication",
+                "rest_framework.authentication.SessionAuthentication",
+            ],
+        }
+    )
+
+# Djoser settings
+DJOSER = {
+    "LOGIN_FIELD": "email",
+    "LOGOUT_ON_PASSWORD_CHANGE": "True",
+    "HIDE_USERS": False,
+    "PERMISSIONS": {
+        "user": ["rest_framework.permissions.IsAuthenticated"],
+        "user_list": ["rest_framework.permissions.AllowAny"],
+    },
+    "SERIALIZERS": {
+        "user_create": "api.v1.serializers.CustomUserCreateSerializer",
+        "user": "api.v1.serializers.UserSerializer",
+        "current_user": "api.v1.serializers.UserSerializer",
+    },
+}

@@ -3,32 +3,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
+from users.admin_site_permissions import StaffAllowedModelAdmin
 from users.models import Subscription, User
-
-
-class StaffAllowedModelAdmin(admin.ModelAdmin):
-    """The staff is allowed access to the Admin site."""
-
-    @staticmethod
-    def check_perm(user):
-        if user.is_active and (user.is_staff or user.is_superuser):
-            return True
-        return False
-
-    def has_module_permission(self, request):
-        return self.check_perm(request.user)
-
-    def has_view_permission(self, request, obj=None):
-        return self.check_perm(request.user)
-
-    def has_add_permission(self, request):
-        return self.check_perm(request.user)
-
-    def has_change_permission(self, request, obj=None):
-        return self.check_perm(request.user)
-
-    def has_delete_permission(self, request, obj=None):
-        return self.check_perm(request.user)
 
 
 @admin.register(User)
@@ -37,13 +13,12 @@ class StaffAllowedUserAdmin(UserAdmin, StaffAllowedModelAdmin):
 
     def get_queryset(self, request):
         """Custom queryset of User model instances."""
-
         qs = User.objects.all()
         if not request.user.is_superuser:
             qs = qs.filter(is_superuser=False, is_staff=False)
         ordering = self.get_ordering(request)
         if ordering:
-            qs = qs.order_by(*ordering)
+            qs.order_by(*ordering)
         return qs
 
     def get_form(self, request, obj=None, **kwargs):

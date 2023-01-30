@@ -12,6 +12,8 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=150)
 
+    REQUIRED_FIELDS = ("email", "first_name", "last_name")
+
     class Meta:
         ordering = ("username",)
         verbose_name = "user"

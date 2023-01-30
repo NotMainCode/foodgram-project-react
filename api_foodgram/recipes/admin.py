@@ -10,7 +10,10 @@ from recipes.models import (
     ShoppingCart,
     Tag,
 )
-from users.admin import StaffAllowedModelAdmin
+from users.admin_site_permissions import (
+    StaffAllowedBaseModelAdmin,
+    StaffAllowedModelAdmin,
+)
 
 
 @admin.register(Ingredient)
@@ -23,6 +26,7 @@ class IngredientAdmin(StaffAllowedModelAdmin):
         "measurement_unit",
     )
     search_fields = ("name",)
+    list_filter = ("name",)
 
 
 @admin.register(Tag)
@@ -38,7 +42,9 @@ class TagAdmin(StaffAllowedModelAdmin):
     search_fields = ("name",)
 
 
-class RecipeIngredientsInline(admin.TabularInline):
+class RecipeIngredientsInline(admin.TabularInline, StaffAllowedBaseModelAdmin):
+    """Table settings for 'RecipeIngredients' model on the admin site."""
+
     model = RecipeIngredients
     min_num = 1
     extra = 5

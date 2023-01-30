@@ -7,6 +7,7 @@ from django.views.generic import TemplateView
 from api_foodgram import settings
 
 urlpatterns = [
+    path("api/", include("api.urls")),
     path("admin/", admin.site.urls),
     path(
         "redoc/",
@@ -15,4 +16,7 @@ urlpatterns = [
     ),
 ]
 if settings.DEBUG:
-    urlpatterns += (path("__debug__/", include("debug_toolbar.urls")),)
+    urlpatterns += (
+        path("__debug__/", include("debug_toolbar.urls")),
+        path("api-auth/", include("rest_framework.urls")),
+    )

@@ -24,7 +24,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for requests to endpoints of 'Users' resource."""
 
-    is_subscribed = serializers.SerializerMethodField()
+    is_subscribed = serializers.BooleanField()
 
     class Meta:
         model = User
@@ -36,11 +36,3 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "is_subscribed",
         )
-
-    def get_is_subscribed(self, obj):
-        try:
-            return Subscription.objects.filter(
-                subscriber=self.context["request"].user, author=obj
-            ).exists()
-        except TypeError:
-            return False

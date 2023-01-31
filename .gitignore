@@ -134,3 +134,6 @@ dmypy.json
 # statics and media
 /api_foodgram/media/
 /api_foodgram/static/
+
+# frontend dependencies
+/frontend/node_modules/

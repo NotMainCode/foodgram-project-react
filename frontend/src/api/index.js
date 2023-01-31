@@ -1,3 +1,5 @@
+const URL = "/api/v1";
+
 class Api {
   constructor (url, headers) {
     this._url = url
@@ -33,7 +35,7 @@ class Api {
 
   signin ({ email, password }) {
     return fetch(
-      '/api/auth/token/login/',
+      `${URL}/auth/token/login/`,
       {
         method: 'POST',
         headers: this._headers,
@@ -47,7 +49,7 @@ class Api {
   signout () {
     const token = localStorage.getItem('token')
     return fetch(
-      '/api/auth/token/logout/',
+      `${URL}/auth/token/logout/`,
       {
         method: 'POST',
         headers: {
@@ -60,7 +62,7 @@ class Api {
 
   signup ({ email, password, username, first_name, last_name }) {
     return fetch(
-      `/api/users/`,
+      `${URL}/users/`,
       {
         method: 'POST',
         headers: this._headers,
@@ -74,7 +76,7 @@ class Api {
   getUserData () {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/users/me/`,
+      `${URL}/users/me/`,
       {
         method: 'GET',
         headers: {
@@ -88,7 +90,7 @@ class Api {
   changePassword ({ current_password, new_password }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/users/set_password/`,
+      `${URL}/users/set_password/`,
       {
         method: 'POST',
         headers: {
@@ -115,7 +117,7 @@ class Api {
       const authorization = token ? { 'authorization': `Token ${token}` } : {}
       const tagsString = tags ? tags.filter(tag => tag.value).map(tag => `&tags=${tag.slug}`).join('') : ''
       return fetch(
-        `/api/recipes/?page=${page}&limit=${limit}${author ? `&author=${author}` : ''}${is_favorited ? `&is_favorited=${is_favorited}` : ''}${is_in_shopping_cart ? `&is_in_shopping_cart=${is_in_shopping_cart}` : ''}${tagsString}`,
+        `${URL}/recipes/?page=${page}&limit=${limit}${author ? `&author=${author}` : ''}${is_favorited ? `&is_favorited=${is_favorited}` : ''}${is_in_shopping_cart ? `&is_in_shopping_cart=${is_in_shopping_cart}` : ''}${tagsString}`,
         {
           method: 'GET',
           headers: {
@@ -132,7 +134,7 @@ class Api {
     const token = localStorage.getItem('token')
     const authorization = token ? { 'authorization': `Token ${token}` } : {}
     return fetch(
-      `/api/recipes/${recipe_id}/`,
+      `${URL}/recipes/${recipe_id}/`,
       {
         method: 'GET',
         headers: {
@@ -153,7 +155,7 @@ class Api {
   }) {
     const token = localStorage.getItem('token')
     return fetch(
-      '/api/recipes/',
+      `${URL}/recipes/`,
       {
         method: 'POST',
         headers: {
@@ -183,7 +185,7 @@ class Api {
   }, wasImageUpdated) { // image was changed
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/recipes/${recipe_id}/`,
+      `${URL}/recipes/${recipe_id}/`,
       {
         method: 'PATCH',
         headers: {
@@ -206,7 +208,7 @@ class Api {
   addToFavorites ({ id }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/recipes/${id}/favorite/`,
+      `${URL}/recipes/${id}/favorite/`,
       {
         method: 'POST',
         headers: {
@@ -220,7 +222,7 @@ class Api {
   removeFromFavorites ({ id }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/recipes/${id}/favorite/`,
+      `${URL}/recipes/${id}/favorite/`,
       {
         method: 'DELETE',
         headers: {
@@ -234,7 +236,7 @@ class Api {
   getUser ({ id }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/users/${id}/`,
+      `${URL}/users/${id}/`,
       {
         method: 'GET',
         headers: {
@@ -251,7 +253,7 @@ class Api {
   }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/users/?page=${page}&limit=${limit}`,
+      `${URL}/users/?page=${page}&limit=${limit}`,
       {
         method: 'GET',
         headers: {
@@ -271,7 +273,7 @@ class Api {
   }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/users/subscriptions/?page=${page}&limit=${limit}&recipes_limit=${recipes_limit}`,
+      `${URL}/users/subscriptions/?page=${page}&limit=${limit}&recipes_limit=${recipes_limit}`,
       {
         method: 'GET',
         headers: {
@@ -287,7 +289,7 @@ class Api {
   }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/users/${author_id}/subscribe/`,
+      `${URL}/users/${author_id}/subscribe/`,
       {
         method: 'DELETE',
         headers: {
@@ -303,7 +305,7 @@ class Api {
   }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/users/${author_id}/subscribe/`,
+      `${URL}/users/${author_id}/subscribe/`,
       {
         method: 'POST',
         headers: {
@@ -318,7 +320,7 @@ class Api {
   getIngredients ({ name }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/ingredients/?name=${name}`,
+      `${URL}/ingredients/?name=${name}`,
       {
         method: 'GET',
         headers: {
@@ -332,7 +334,7 @@ class Api {
   getTags () {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/tags/`,
+      `${URL}/tags/`,
       {
         method: 'GET',
         headers: {
@@ -346,7 +348,7 @@ class Api {
   addToOrders ({ id }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/recipes/${id}/shopping_cart/`,
+      `${URL}/recipes/${id}/shopping_cart/`,
       {
         method: 'POST',
         headers: {
@@ -360,7 +362,7 @@ class Api {
   removeFromOrders ({ id }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/recipes/${id}/shopping_cart/`,
+      `${URL}/recipes/${id}/shopping_cart/`,
       {
         method: 'DELETE',
         headers: {
@@ -374,7 +376,7 @@ class Api {
   deleteRecipe ({ recipe_id }) {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/recipes/${recipe_id}/`,
+      `${URL}/recipes/${recipe_id}/`,
       {
         method: 'DELETE',
         headers: {
@@ -388,7 +390,7 @@ class Api {
   downloadFile () {
     const token = localStorage.getItem('token')
     return fetch(
-      `/api/recipes/download_shopping_cart/`,
+      `${URL}/recipes/download_shopping_cart/`,
       {
         method: 'GET',
         headers: {
@@ -400,4 +402,4 @@ class Api {
   }
 }
 
-export default new Api(process.env.API_URL || 'http://localhost', { 'content-type': 'application/json' })
+export default new Api(process.env.API_URL || 'http://localhost:8008', { 'content-type': 'application/json' })

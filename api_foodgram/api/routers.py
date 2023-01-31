@@ -7,7 +7,7 @@ class CustomDefaultRouter(DefaultRouter):
     """Custom DefaultRouter."""
 
     def get_urls(self):
-        """Disable unused Dijoser endpoints."""
+        """Disable unused Djoser endpoints."""
         urls = super().get_urls()
         disable_names = (
             "user-activation",

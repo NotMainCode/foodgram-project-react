@@ -114,9 +114,13 @@ REST_FRAMEWORK = {
 
 # Debug mode settings
 if DEBUG:
-    INSTALLED_APPS.append("debug_toolbar")
-    MIDDLEWARE.append(
-        "debug_toolbar.middleware.DebugToolbarMiddleware",
+    INSTALLED_APPS.extend(("debug_toolbar", "corsheaders"))
+    MIDDLEWARE.extend(
+        (
+            "debug_toolbar.middleware.DebugToolbarMiddleware",
+            "corsheaders.middleware.CorsMiddleware",
+            "django.middleware.common.CommonMiddleware",
+        )
     )
     REST_FRAMEWORK.update(
         {
@@ -126,6 +130,8 @@ if DEBUG:
             ],
         }
     )
+    CORS_ALLOWED_ORIGINS = ("http://localhost:3000",)
+    CORS_URLS_REGEX = r"^/api/v1.*$"
 
 # Djoser settings
 DJOSER = {

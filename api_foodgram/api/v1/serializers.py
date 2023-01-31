@@ -3,7 +3,7 @@
 from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
 
-from users.models import Subscription, User
+from users.models import User
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -24,7 +24,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for requests to endpoints of 'Users' resource."""
 
-    is_subscribed = serializers.BooleanField()
+    is_subscribed = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User

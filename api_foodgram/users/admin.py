@@ -22,7 +22,7 @@ class StaffAllowedUserAdmin(UserAdmin, StaffAllowedModelAdmin):
         return qs
 
     def get_form(self, request, obj=None, **kwargs):
-        """Restrict access to fields of forms  for non-superusers."""
+        """Restrict access to fields of forms for non-superusers."""
         form = super().get_form(request, obj, **kwargs)
         if request.user.is_superuser:
             return form

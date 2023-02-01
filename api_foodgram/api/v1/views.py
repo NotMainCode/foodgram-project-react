@@ -12,10 +12,12 @@ class CustomUserViewSet(UserViewSet):
     http_method_names = ("get", "post", "head")
 
     def get_queryset(self):
-        return User.objects.all().annotate(
-            is_subscribed=Exists(
-                Subscription.objects.filter(
-                    subscriber=self.request.user, author=OuterRef("pk")
-                )
+        qs = User.objects.all()
+        if (self.request.method == "GET") and (
+            isinstance(self.request.user, User)
+        ):
+            subquerie = Subscription.objects.filter(
+                subscriber=self.request.user, author=OuterRef("pk")
             )
-        )
+            qs = qs.annotate(is_subscribed=(Exists(subquerie)))
+        return qs

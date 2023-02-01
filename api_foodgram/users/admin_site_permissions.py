@@ -1,4 +1,4 @@
-"""Staff access to the admin site."""
+"""Access to the admin site."""
 
 from django.contrib.admin.options import BaseModelAdmin, ModelAdmin
 
@@ -18,7 +18,7 @@ class StaffAllowedBaseModelAdmin(BaseModelAdmin):
     def has_view_permission(self, request, obj=None):
         return self.check_perm(request.user)
 
-    def has_add_permission(self, request, obj=None):
+    def has_add_permission(self, request):
         return self.check_perm(request.user)
 
     def has_change_permission(self, request, obj=None):

@@ -24,7 +24,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for requests to endpoints of 'Users' resource."""
 
-    is_subscribed = serializers.BooleanField(read_only=True)
+    is_subscribed = serializers.BooleanField(read_only=True, default=False)
 
     class Meta:
         model = User

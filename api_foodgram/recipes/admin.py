@@ -1,6 +1,7 @@
 """Admin site settings of the 'Recipes' application."""
 
 from django.contrib import admin
+from django.db.models import Count
 
 from recipes.models import (
     Favorite,
@@ -54,11 +55,24 @@ class RecipeIngredientsInline(admin.TabularInline, StaffAllowedBaseModelAdmin):
 class RecipeAdmin(StaffAllowedModelAdmin):
     """Table settings for resource 'Recipe' on the admin site."""
 
+    @staticmethod
+    def in_favorite(obj):
+        return obj.in_favorite
+
+    def get_queryset(self, request):
+        """Custom queryset of Recipe model instances."""
+        qs = Recipe.objects.annotate(in_favorite=Count("favorites"))
+        ordering = self.get_ordering(request)
+        if ordering:
+            qs.order_by(*ordering)
+        return qs
+
     list_display = (
         "pk",
         "author",
         "name",
         "cooking_time",
+        "in_favorite",
     )
     inlines = [
         RecipeIngredientsInline,

@@ -1,4 +1,5 @@
 """URLs request handlers of the 'api' application."""
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import (
     Case,
@@ -13,12 +14,13 @@ from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework import serializers, status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.decorators import action, api_view
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from api.mixins import CreateDestroyViewSet
 from api.pagination import PageNumberLimitPagination
+from api.v1.permissions import IsAuthorOrReadOnly
 from api.v1.serializers import (
     FavoriteSerializer,
     IngredientSerializer,
@@ -92,7 +94,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """URL requests handler to 'Recipes' resource endpoints."""
 
     serializer_class = RecipeSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthorOrReadOnly,)
     pagination_class = PageNumberLimitPagination
 
     def get_queryset(self):
@@ -210,7 +212,6 @@ class ShoppingCartViewSet(CreateDestroyViewSet):
 
 
 @api_view(("GET",))
-@permission_classes((IsAuthenticated,))
 def download_shopping_cart(request):
     """URL requests handler to recipes/download_shopping_cart/ endpoint."""
     items = [

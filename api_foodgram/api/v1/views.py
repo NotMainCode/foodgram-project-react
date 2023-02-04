@@ -1,5 +1,5 @@
 """URLs request handlers of the 'api' application."""
-
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import (
     Case,
     Exists,
@@ -7,7 +7,7 @@ from django.db.models import (
     OuterRef,
     Sum,
     Value,
-    When
+    When,
 )
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -161,9 +161,15 @@ class FavoriteViewSet(CreateDestroyViewSet):
 
     @action(methods=("delete",), detail=False)
     def delete(self, request, recipe_id):
-        get_object_or_404(
-            Favorite, user=request.user, recipe_id=recipe_id
-        ).delete()
+        try:
+            Favorite.objects.get(
+                user=request.user, recipe_id=recipe_id
+            ).delete()
+        except ObjectDoesNotExist:
+            return Response(
+                {"errors": "Recipe was not in the favorites."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -191,9 +197,15 @@ class ShoppingCartViewSet(CreateDestroyViewSet):
 
     @action(methods=("delete",), detail=False)
     def delete(self, request, recipe_id):
-        get_object_or_404(
-            ShoppingCart, user=request.user, recipe_id=recipe_id
-        ).delete()
+        try:
+            ShoppingCart.objects.get(
+                user=request.user, recipe_id=recipe_id
+            ).delete()
+        except ObjectDoesNotExist:
+            return Response(
+                {"errors": "Recipe was not on the shopping list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

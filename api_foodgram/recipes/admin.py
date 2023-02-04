@@ -60,7 +60,7 @@ class RecipeAdmin(StaffAllowedModelAdmin):
         return obj.in_favorite
 
     def get_queryset(self, request):
-        """Custom queryset of Recipe model instances."""
+        """Annotating objects with "in_favorite" value."""
         qs = Recipe.objects.annotate(in_favorite=Count("favorites"))
         ordering = self.get_ordering(request)
         if ordering:
@@ -74,6 +74,7 @@ class RecipeAdmin(StaffAllowedModelAdmin):
         "cooking_time",
         "in_favorite",
     )
+    readonly_fields = ("in_favorite",)
     inlines = [
         RecipeIngredientsInline,
     ]

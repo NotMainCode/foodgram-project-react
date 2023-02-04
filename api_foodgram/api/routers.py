@@ -7,7 +7,7 @@ class CustomDefaultRouter(DefaultRouter):
     """Custom DefaultRouter."""
 
     def get_urls(self):
-        """Disable unused Djoser endpoints."""
+        """Disable unused endpoints."""
         urls = super().get_urls()
         disable_names = (
             "user-activation",
@@ -17,5 +17,7 @@ class CustomDefaultRouter(DefaultRouter):
             "user-reset-username",
             "user-reset-username-confirm",
             "user-set-username",
+            "favorite-detail",
+            "shopping_cart-detail",
         )
         return list(filter(lambda url: url.name not in disable_names, urls))

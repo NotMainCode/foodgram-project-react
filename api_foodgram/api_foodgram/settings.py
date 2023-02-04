@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework.authtoken",
+    "django_filters",
     "djoser",
     "users.apps.UsersConfig",
     "recipes",
@@ -109,7 +110,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 4,
+    "PAGE_SIZE": 6,
 }
 
 # Debug mode settings
@@ -148,3 +149,6 @@ DJOSER = {
         "current_user": "api.v1.serializers.UserSerializer",
     },
 }
+
+# Constants
+EDITABLE_INGREDIENTS_AMOUNT = ("по вкусу",)

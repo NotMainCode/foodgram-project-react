@@ -128,7 +128,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     )
                     return qs
                 tags = self.request.query_params.getlist("tags")
-                qs = qs.filter(tags__slug__in=tags)
+                qs = qs.filter(tags__slug__in=tags).distinct()
                 is_favorited = self.request.query_params.get("is_favorited")
                 if is_favorited is not None:
                     qs = qs.filter(is_favorited=bool(is_favorited))
@@ -136,9 +136,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 if author_id is not None:
                     qs = qs.filter(author_id=author_id)
         return qs
-
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
 
 
 class FavoriteViewSet(CreateDestroyViewSet):
@@ -214,7 +211,7 @@ class ShoppingCartViewSet(CreateDestroyViewSet):
 @api_view(("GET",))
 def download_shopping_cart(request):
     """URL requests handler to recipes/download_shopping_cart/ endpoint."""
-    items = [
+    ingredients = [
         *RecipeIngredients.objects.filter(recipe__order__user=request.user)
         .select_related("ingredient")
         .values_list(
@@ -225,8 +222,8 @@ def download_shopping_cart(request):
         .order_by("ingredient__name")
     ]
     shopping_list = ""
-    for item in items:
-        shopping_list += " ".join((str(el) for el in item)) + "\n"
+    for ingredient in ingredients:
+        shopping_list += " ".join((str(el) for el in ingredient)) + "\n"
     return HttpResponse(
         shopping_list, content_type="text/plain", status=status.HTTP_200_OK
     )

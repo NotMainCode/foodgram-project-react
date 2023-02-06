@@ -20,7 +20,9 @@ router_v1.register("ingredients", IngredientViewSet, basename="ingredients")
 router_v1.register("tags", TagViewSet, basename="tags")
 router_v1.register("recipes", RecipeViewSet, basename="recipes")
 router_v1.register(
-    "recipes/(?P<recipe_id>\d+)/favorite", FavoriteViewSet, basename="favorite"
+    "recipes/(?P<recipe_id>\d+)/favorite",
+    FavoriteViewSet,
+    basename="favorite",
 )
 router_v1.register(
     "recipes/(?P<recipe_id>\d+)/shopping_cart",

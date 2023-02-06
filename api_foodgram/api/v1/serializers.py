@@ -1,5 +1,6 @@
 """Serializers of the 'api' application."""
 
+from django.db import IntegrityError
 from djoser.serializers import UserCreateSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
@@ -73,6 +74,21 @@ class TagSerializer(serializers.ModelSerializer):
         )
 
 
+class IngredientsAmountSerializer(serializers.ModelSerializer):
+    """Nested serializer for RecipeIngredientsSerializer."""
+
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects.all(), write_only=True
+    )
+
+    class Meta:
+        model = RecipeIngredients
+        fields = (
+            "id",
+            "amount",
+        )
+
+
 class RecipeIngredientsSerializer(serializers.ModelSerializer):
     """Add serializer for requests to endpoints of 'Recipes' resource."""
 
@@ -82,6 +98,10 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
         source="ingredient.measurement_unit"
     )
     amount = serializers.SerializerMethodField()
+    recipe = serializers.PrimaryKeyRelatedField(
+        queryset=Recipe.objects.all(), write_only=True
+    )
+    ingredients = IngredientsAmountSerializer(many=True, write_only=True)
 
     class Meta:
         model = RecipeIngredients
@@ -90,6 +110,8 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
             "name",
             "measurement_unit",
             "amount",
+            "recipe",
+            "ingredients",
         )
 
     def get_amount(self, obj):
@@ -101,7 +123,9 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     """Serializer for requests to endpoints of 'Recipes' resource."""
 
-    tags = TagSerializer(many=True, read_only=True)
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Tag.objects.all()
+    )
     author = UserSerializer(read_only=True)
     ingredients = serializers.SerializerMethodField()
     is_favorited = serializers.BooleanField(read_only=True, default=False)
@@ -125,10 +149,47 @@ class RecipeSerializer(serializers.ModelSerializer):
             "cooking_time",
         )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.context["request"].method in ("GET",):
+            self.fields["tags"] = TagSerializer(many=True, read_only=True)
+
     def get_ingredients(self, obj):
-        recipes = RecipeIngredients.objects.filter(recipe_id=obj.id)
-        serializer = RecipeIngredientsSerializer(instance=recipes, many=True)
+        recipe_ingredients = RecipeIngredients.objects.filter(recipe=obj)
+        serializer = RecipeIngredientsSerializer(
+            instance=recipe_ingredients, many=True
+        )
         return serializer.data
+
+    def create(self, validated_data):
+        tags = validated_data.pop("tags")
+        recipe = Recipe.objects.create(
+            author=self.context["request"].user, **validated_data
+        )
+        recipe.tags.set(tags)
+        self.initial_data["recipe"] = recipe.id
+        serializer = RecipeIngredientsSerializer(data=self.initial_data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            RecipeIngredients.objects.bulk_create(
+                [
+                    RecipeIngredients(
+                        recipe=serializer.validated_data["recipe"],
+                        ingredient=ingredient["id"],
+                        amount=ingredient["amount"],
+                    )
+                    for ingredient in serializer.validated_data["ingredients"]
+                ],
+            )
+        except IntegrityError:
+            recipe.delete()
+            raise serializers.ValidationError(
+                {
+                    "ingredients_id": "There cannot be two or more of the same ingredient id."
+                }
+            )
+        return recipe
 
 
 class FavoriteSerializer(serializers.ModelSerializer):

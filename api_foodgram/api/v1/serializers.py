@@ -5,7 +5,6 @@ from djoser.serializers import UserCreateSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from api_foodgram.settings import EDITABLE_INGREDIENTS_AMOUNT
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -97,7 +96,7 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
     measurement_unit = serializers.ReadOnlyField(
         source="ingredient.measurement_unit"
     )
-    amount = serializers.SerializerMethodField()
+    amount = serializers.ReadOnlyField()
     recipe = serializers.PrimaryKeyRelatedField(
         queryset=Recipe.objects.all(), write_only=True
     )
@@ -113,11 +112,6 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
             "recipe",
             "ingredients",
         )
-
-    def get_amount(self, obj):
-        if obj.ingredient.measurement_unit in EDITABLE_INGREDIENTS_AMOUNT:
-            return ""
-        return obj.amount
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -163,11 +157,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def create(self, validated_data):
-        tags = validated_data.pop("tags")
-        recipe = Recipe.objects.create(
-            author=self.context["request"].user, **validated_data
-        )
-        recipe.tags.set(tags)
+        validated_data["author"] = self.context["request"].user
+        recipe = super().create(validated_data)
         self.initial_data["recipe"] = recipe.id
         serializer = RecipeIngredientsSerializer(data=self.initial_data)
         serializer.is_valid(raise_exception=True)
@@ -185,10 +176,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         except IntegrityError:
             recipe.delete()
             raise serializers.ValidationError(
-                {
-                    "ingredients_id": "There cannot be two or more of the same ingredient id."
-                }
+                {"ingredients_id": "This field must be unique."}
             )
+        return recipe
+
+    def update(self, instance, validated_data):
+        recipe = self.create(validated_data)
+        instance.delete()
         return recipe
 
 

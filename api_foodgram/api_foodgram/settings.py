@@ -149,6 +149,3 @@ DJOSER = {
         "current_user": "api.v1.serializers.UserSerializer",
     },
 }
-
-# Constants
-EDITABLE_INGREDIENTS_AMOUNT = ("по вкусу",)

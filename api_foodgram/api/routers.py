@@ -17,7 +17,5 @@ class CustomDefaultRouter(DefaultRouter):
             "user-reset-username",
             "user-reset-username-confirm",
             "user-set-username",
-            "favorite-detail",
-            "shopping_cart-detail",
         )
         return list(filter(lambda url: url.name not in disable_names, urls))

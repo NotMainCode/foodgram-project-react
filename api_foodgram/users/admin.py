@@ -78,7 +78,7 @@ class SubscriptionAdmin(StaffAllowedModelAdmin):
 
     list_display = (
         "pk",
-        "subscriber",
+        "user",
         "author",
     )
-    search_fields = ("subscriber",)
+    search_fields = ("user",)

@@ -26,7 +26,7 @@ class User(AbstractUser):
 class Subscription(models.Model):
     """Table settings for user subscriptions."""
 
-    subscriber = models.ForeignKey(
+    user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="subscriber",
@@ -34,12 +34,12 @@ class Subscription(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="author",
+        related_name="subscription",
     )
 
     class Meta:
         constraints = (
             models.UniqueConstraint(
-                fields=["subscriber", "author"], name="unique_subscription"
+                fields=["user", "author"], name="unique_subscription"
             ),
         )

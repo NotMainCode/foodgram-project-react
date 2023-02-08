@@ -1,6 +1,7 @@
 """URLs request handlers of the 'api' application."""
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import IntegrityError
 from django.db.models import (
     Case,
     Exists,
@@ -14,18 +15,19 @@ from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework import serializers, status, viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import api_view
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from api.mixins import CreateDestroyViewSet
+from api.mixins import ListViewSet, ModelViewSetWithoutPUT
 from api.pagination import PageNumberLimitPagination
 from api.v1.permissions import IsAuthorOrReadOnly
 from api.v1.serializers import (
-    FavoriteSerializer,
     IngredientSerializer,
+    RecipeBriefSerializer,
     RecipeSerializer,
-    ShoppingCartSerializer,
+    SubscriptionSerializer,
     TagSerializer,
 )
 from recipes.models import (
@@ -42,14 +44,15 @@ from users.models import Subscription, User
 class CustomUserViewSet(UserViewSet):
     """URL requests handler to 'Users' resource endpoints."""
 
-    http_method_names = ("get", "post", "head")
+    http_method_names = ("get", "post", "head", "options")
+    pagination_class = PageNumberLimitPagination
 
     def get_queryset(self):
         qs = User.objects.all()
         user = self.request.user
         if self.request.method == "GET" and (isinstance(user, User)):
             subquery = Subscription.objects.filter(
-                subscriber=user, author=OuterRef("pk")
+                user=user, author=OuterRef("pk")
             )
             qs = qs.annotate(is_subscribed=(Exists(subquery)))
         return qs
@@ -59,7 +62,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """URL requests handler to 'Ingredients' resource endpoints."""
 
     serializer_class = IngredientSerializer
-    pagination_class = None
     permission_classes = (AllowAny,)
 
     def get_queryset(self):
@@ -87,10 +89,9 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (AllowAny,)
-    pagination_class = None
 
 
-class RecipeViewSet(viewsets.ModelViewSet):
+class RecipeViewSet(ModelViewSetWithoutPUT):
     """URL requests handler to 'Recipes' resource endpoints."""
 
     serializer_class = RecipeSerializer
@@ -101,11 +102,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         qs = Recipe.objects.select_related("author").prefetch_related(
             "tags", "ingredients"
         )
+        tags = self.request.query_params.getlist("tags")
+        if tags != []:
+            qs = qs.filter(tags__slug__in=tags).distinct()
         if (self.request.method == "GET") and (
             isinstance(self.request.user, User)
         ):
             subquery_subscription = Subscription.objects.filter(
-                subscriber=self.request.user, author=OuterRef("pk")
+                user=self.request.user, author=OuterRef("pk")
             )
             subquery_favorite = Favorite.objects.filter(
                 user=self.request.user, recipe=OuterRef("pk")
@@ -119,6 +123,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 is_in_shopping_cart=(Exists(subquery_shopping_cart)),
             )
             if self.action == "list":
+                author_id = self.request.query_params.get("author")
+                if author_id is not None:
+                    qs = qs.filter(author_id=author_id)
                 is_in_shopping_cart = self.request.query_params.get(
                     "is_in_shopping_cart"
                 )
@@ -126,86 +133,123 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     qs = qs.filter(
                         is_in_shopping_cart=bool(is_in_shopping_cart)
                     )
-                    return qs
-                tags = self.request.query_params.getlist("tags")
-                qs = qs.filter(tags__slug__in=tags).distinct()
                 is_favorited = self.request.query_params.get("is_favorited")
                 if is_favorited is not None:
                     qs = qs.filter(is_favorited=bool(is_favorited))
-                author_id = self.request.query_params.get("author")
-                if author_id is not None:
-                    qs = qs.filter(author_id=author_id)
         return qs
 
 
-class FavoriteViewSet(CreateDestroyViewSet):
+class FavoritePostDelAPIView(APIView):
     """URL requests handler to 'Favorites' resource endpoints."""
 
-    serializer_class = FavoriteSerializer
-
-    def get_queryset(self):
-        return Favorite.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        user = self.request.user
-        recipe_id = self.kwargs["recipe_id"]
-        if Favorite.objects.filter(user=user, recipe_id=recipe_id).exists():
-            raise serializers.ValidationError(
-                {"errors": "Recipe added to favorites earlier."}
+    def post(self, request, **kwargs):
+        recipe = get_object_or_404(Recipe, id=kwargs["recipe_id"])
+        try:
+            Favorite.objects.create(user=request.user, recipe=recipe)
+        except IntegrityError:
+            message = (
+                f"The recipe with id={recipe.id} "
+                f"was added to favorites earlier."
             )
-        serializer.save(
-            user=user,
-            recipe=get_object_or_404(Recipe, id=recipe_id),
+            raise serializers.ValidationError({"errors": message})
+        return Response(
+            RecipeBriefSerializer(recipe).data, status=status.HTTP_201_CREATED
         )
 
-    @action(methods=("delete",), detail=False)
-    def delete(self, request, recipe_id):
+    def delete(self, request, **kwargs):
+        recipe_id = kwargs["recipe_id"]
         try:
             Favorite.objects.get(
                 user=request.user, recipe_id=recipe_id
             ).delete()
         except ObjectDoesNotExist:
+            message = f"The recipe with id={recipe_id} was not in favorites."
             return Response(
-                {"errors": "Recipe was not in the favorites."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"errors": message}, status=status.HTTP_400_BAD_REQUEST
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class ShoppingCartViewSet(CreateDestroyViewSet):
-    """URL requests handler to 'Shopping cart' resource endpoints."""
+class ShoppingCartPostDelAPIView(APIView):
+    """URL requests handler to 'Shopping list' resource endpoints."""
 
-    serializer_class = ShoppingCartSerializer
-
-    def get_queryset(self):
-        return ShoppingCart.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        user = self.request.user
-        recipe_id = self.kwargs["recipe_id"]
-        if ShoppingCart.objects.filter(
-            user=user, recipe_id=recipe_id
-        ).exists():
-            raise serializers.ValidationError(
-                {"errors": "Recipe added to shopping cart earlier."}
+    def post(self, request, **kwargs):
+        recipe = get_object_or_404(Recipe, id=kwargs["recipe_id"])
+        try:
+            ShoppingCart.objects.create(user=request.user, recipe=recipe)
+        except IntegrityError:
+            message = (
+                f"The recipe with id={recipe.id} "
+                f"was added to the shopping list earlier."
             )
-        serializer.save(
-            user=user,
-            recipe=get_object_or_404(Recipe, id=recipe_id),
+            raise serializers.ValidationError({"errors": message})
+        return Response(
+            RecipeBriefSerializer(recipe).data, status=status.HTTP_201_CREATED
         )
 
-    @action(methods=("delete",), detail=False)
-    def delete(self, request, recipe_id):
+    def delete(self, request, **kwargs):
+        recipe_id = kwargs["recipe_id"]
         try:
             ShoppingCart.objects.get(
                 user=request.user, recipe_id=recipe_id
             ).delete()
         except ObjectDoesNotExist:
+            message = (
+                f"The recipe with id={recipe_id} was not in the shopping list."
+            )
             return Response(
-                {"errors": "Recipe was not on the shopping list."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"errors": message}, status=status.HTTP_400_BAD_REQUEST
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SubscribePostDelAPIView(APIView):
+    """URL requests handler to 'Subscriptions' resource endpoints."""
+
+    def post(self, request, **kwargs):
+        author = get_object_or_404(User, id=kwargs["author_id"])
+        user = request.user
+        if author == user:
+            raise serializers.ValidationError(
+                {"errors": "Subscribing to yourself is not allowed."}
+            )
+        try:
+            Subscription.objects.create(user=user, author=author)
+        except IntegrityError:
+            message = (
+                f"The subscription to the author with id={author.id} "
+                f"was created earlier."
+            )
+            raise serializers.ValidationError({"errors": message})
+        author.is_subscribed = True
+        serializer = SubscriptionSerializer(author)
+        serializer.context["request"] = request
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, **kwargs):
+        author_id = kwargs["author_id"]
+        try:
+            Subscription.objects.get(
+                user=request.user, author_id=author_id
+            ).delete()
+        except ObjectDoesNotExist:
+            message = (
+                f"There was no subscription to the author with id={author_id}."
+            )
+            return Response(
+                {"errors": message}, status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SubscriptionViewSet(ListViewSet):
+    """URL requests handler to users/subscriptions/ endpoint."""
+
+    serializer_class = SubscriptionSerializer
+    pagination_class = PageNumberLimitPagination
+
+    def get_queryset(self):
+        return User.objects.filter(subscription__user=self.request.user)
 
 
 @api_view(("GET",))

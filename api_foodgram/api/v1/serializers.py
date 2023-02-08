@@ -6,11 +6,9 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
 from recipes.models import (
-    Favorite,
     Ingredient,
     Recipe,
     RecipeIngredients,
-    ShoppingCart,
     Tag,
 )
 from users.models import User
@@ -73,7 +71,7 @@ class TagSerializer(serializers.ModelSerializer):
         )
 
 
-class IngredientsAmountSerializer(serializers.ModelSerializer):
+class IngredientAmountSerializer(serializers.ModelSerializer):
     """Nested serializer for RecipeIngredientsSerializer."""
 
     id = serializers.PrimaryKeyRelatedField(
@@ -89,7 +87,7 @@ class IngredientsAmountSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientsSerializer(serializers.ModelSerializer):
-    """Add serializer for requests to endpoints of 'Recipes' resource."""
+    """Nested serializer for RecipeSerializer."""
 
     id = serializers.ReadOnlyField(source="ingredient.id")
     name = serializers.ReadOnlyField(source="ingredient.name")
@@ -100,7 +98,7 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
     recipe = serializers.PrimaryKeyRelatedField(
         queryset=Recipe.objects.all(), write_only=True
     )
-    ingredients = IngredientsAmountSerializer(many=True, write_only=True)
+    ingredients = IngredientAmountSerializer(many=True, write_only=True)
 
     class Meta:
         model = RecipeIngredients
@@ -186,16 +184,11 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
 
-class FavoriteSerializer(serializers.ModelSerializer):
-    """Serializer for requests to endpoints of 'Favorites' resource."""
-
-    id = serializers.ReadOnlyField(source="recipe.id")
-    name = serializers.ReadOnlyField(source="recipe.name")
-    image = serializers.CharField(source="recipe.image", read_only=True)
-    cooking_time = serializers.ReadOnlyField(source="recipe.cooking_time")
+class RecipeBriefSerializer(serializers.ModelSerializer):
+    """Brief information about the recipe."""
 
     class Meta:
-        model = Favorite
+        model = Recipe
         fields = (
             "id",
             "name",
@@ -204,19 +197,41 @@ class FavoriteSerializer(serializers.ModelSerializer):
         )
 
 
-class ShoppingCartSerializer(serializers.ModelSerializer):
-    """Serializer for requests to endpoints of 'Shopping list' resource."""
+class SubscriptionSerializer(UserSerializer):
+    """Serializer for requests to endpoints of 'Subscriptions' resource."""
 
-    id = serializers.ReadOnlyField(source="recipe.id")
-    name = serializers.ReadOnlyField(source="recipe.name")
-    image = serializers.CharField(source="recipe.image", read_only=True)
-    cooking_time = serializers.ReadOnlyField(source="recipe.cooking_time")
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
 
     class Meta:
-        model = ShoppingCart
+        model = User
         fields = (
+            "email",
             "id",
-            "name",
-            "image",
-            "cooking_time",
+            "username",
+            "first_name",
+            "last_name",
+            "is_subscribed",
+            "recipes",
+            "recipes_count",
         )
+
+    def get_recipes(self, obj):
+        recipes = Recipe.objects.filter(author=obj)
+        recipes_limit = self.context["request"].query_params.get(
+            "recipes_limit"
+        )
+        if recipes_limit is not None:
+            try:
+                recipes = recipes[: int(recipes_limit)]
+            except (ValueError, AssertionError):
+                message = (
+                    f"Invalid query parameter value: "
+                    f"recipes_limit={recipes_limit}."
+                )
+                raise serializers.ValidationError({"errors": message})
+        serializer = RecipeBriefSerializer(instance=recipes, many=True)
+        return serializer.data
+
+    def get_recipes_count(self, obj):
+        return Recipe.objects.filter(author=obj).count()

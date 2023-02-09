@@ -135,7 +135,6 @@ if DEBUG:
 # Djoser settings
 DJOSER = {
     "LOGIN_FIELD": "email",
-    "LOGOUT_ON_PASSWORD_CHANGE": "True",
     "HIDE_USERS": False,
     "PERMISSIONS": {
         "user": ["rest_framework.permissions.IsAuthenticated"],

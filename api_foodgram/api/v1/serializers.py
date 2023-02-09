@@ -155,8 +155,11 @@ class RecipeSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def create(self, validated_data):
-        validated_data["author"] = self.context["request"].user
-        recipe = super().create(validated_data)
+        tags = validated_data.pop("tags")
+        recipe = Recipe.objects.create(
+            author = self.context["request"].user, **validated_data
+        )
+        recipe.tags.set(tags)
         self.initial_data["recipe"] = recipe.id
         serializer = RecipeIngredientsSerializer(data=self.initial_data)
         serializer.is_valid(raise_exception=True)

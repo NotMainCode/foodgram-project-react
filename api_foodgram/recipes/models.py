@@ -116,9 +116,10 @@ class Recipe(models.Model):
         verbose_name="recipe image",
         help_text="Add recipe image",
     )
+    pub_date = models.DateTimeField(auto_now_add = True, db_index = True)
 
     class Meta:
-        ordering = ("name",)
+        ordering = ("-pub_date",)
         verbose_name = "recipe"
         verbose_name_plural = "recipes"
 

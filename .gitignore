@@ -137,3 +137,5 @@ dmypy.json
 
 # frontend dependencies
 /frontend/node_modules/
+
+/api_foodgram/csv_data/

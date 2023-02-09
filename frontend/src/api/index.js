@@ -1,4 +1,4 @@
-const URL = "/api/v1";
+const URL = "/api";
 
 class Api {
   constructor (url, headers) {
@@ -402,4 +402,4 @@ class Api {
   }
 }
 
-export default new Api(process.env.API_URL || 'http://localhost:8008', { 'content-type': 'application/json' })
+export default new Api(process.env.API_URL || 'http://localhost', { 'content-type': 'application/json' })

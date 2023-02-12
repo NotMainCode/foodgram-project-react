@@ -10,7 +10,15 @@ class ListViewSet(
     """Viewset allows methods: GET(queryset)."""
 
 
-class ModelViewSetWithoutPUT(viewsets.ModelViewSet):
-    """The viewset allows all methods except PUT."""
+class GetPostPatchDeleteViewSet(viewsets.ModelViewSet):
+    """The viewset allows methods: GET, POST, PATCH, DELETE."""
 
     http_method_names = ("get", "post", "patch", "delete", "head", "options")
+
+
+class CreateDestroyViewSet(
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Viewset allows methods: POST, DELETE."""

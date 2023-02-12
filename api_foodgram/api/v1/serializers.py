@@ -1,17 +1,20 @@
 """Serializers of the 'api' application."""
 
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from djoser.serializers import UserCreateSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
+from api.pagination import LimitPagination
 from recipes.models import (
+    Favorite,
     Ingredient,
     Recipe,
-    RecipeIngredients,
+    RecipeIngredient,
+    ShoppingCart,
     Tag,
 )
-from users.models import User
+from users.models import Subscription, User
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -79,7 +82,7 @@ class IngredientAmountSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = RecipeIngredients
+        model = RecipeIngredient
         fields = (
             "id",
             "amount",
@@ -101,7 +104,7 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
     ingredients = IngredientAmountSerializer(many=True, write_only=True)
 
     class Meta:
-        model = RecipeIngredients
+        model = RecipeIngredient
         fields = (
             "id",
             "name",
@@ -112,12 +115,10 @@ class RecipeIngredientsSerializer(serializers.ModelSerializer):
         )
 
 
-class RecipeSerializer(serializers.ModelSerializer):
-    """Serializer for requests to endpoints of 'Recipes' resource."""
+class GetRecipeSerializer(serializers.ModelSerializer):
+    """Serializer for Get requests to endpoints of 'Recipes' resource."""
 
-    tags = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Tag.objects.all()
-    )
+    tags = TagSerializer(many=True, read_only=True)
     author = UserSerializer(read_only=True)
     ingredients = serializers.SerializerMethodField()
     is_favorited = serializers.BooleanField(read_only=True, default=False)
@@ -141,32 +142,59 @@ class RecipeSerializer(serializers.ModelSerializer):
             "cooking_time",
         )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.context["request"].method in ("GET",):
-            self.fields["tags"] = TagSerializer(many=True, read_only=True)
-
     def get_ingredients(self, obj):
-        recipe_ingredients = RecipeIngredients.objects.filter(recipe=obj)
+        recipe_ingredients = RecipeIngredient.objects.filter(recipe=obj)
         serializer = RecipeIngredientsSerializer(
             instance=recipe_ingredients, many=True
         )
         return serializer.data
 
-    def create(self, validated_data):
+
+class PostPatchRecipeSerializer(GetRecipeSerializer):
+    """Serializer for Post Patch requests to endpoints of Recipes resource."""
+
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Tag.objects.all()
+    )
+    ingredients = IngredientAmountSerializer(many=True)
+
+    class Meta:
+        model = Recipe
+        fields = (
+            "id",
+            "tags",
+            "author",
+            "ingredients",
+            "is_favorited",
+            "is_in_shopping_cart",
+            "name",
+            "image",
+            "text",
+            "cooking_time",
+        )
+
+    @transaction.atomic
+    def create(self, validated_data, update_obj_id=None):
         tags = validated_data.pop("tags")
-        recipe = Recipe.objects.create(
-            author=self.context["request"].user, **validated_data
+        ingredients = validated_data.pop("ingredients")
+        instance_data = validated_data
+        instance_data["author"] = self.context["request"].user
+        recipe, created = Recipe.objects.update_or_create(
+            id=update_obj_id,
+            defaults=instance_data,
         )
         recipe.tags.set(tags)
-        self.initial_data["recipe"] = recipe.id
-        serializer = RecipeIngredientsSerializer(data=self.initial_data)
+        for ingredient in ingredients:
+            ingredient["id"] = ingredient["id"].id
+        data = {"recipe": recipe.id, "ingredients": ingredients}
+        serializer = RecipeIngredientsSerializer(data=data)
         serializer.is_valid(raise_exception=True)
+        if not created:
+            RecipeIngredient.objects.filter(recipe=recipe).delete()
         try:
-            RecipeIngredients.objects.bulk_create(
+            RecipeIngredient.objects.bulk_create(
                 [
-                    RecipeIngredients(
+                    RecipeIngredient(
                         recipe=serializer.validated_data["recipe"],
                         ingredient=ingredient["id"],
                         amount=ingredient["amount"],
@@ -175,16 +203,19 @@ class RecipeSerializer(serializers.ModelSerializer):
                 ],
             )
         except IntegrityError:
-            recipe.delete()
             raise serializers.ValidationError(
                 {"ingredients_id": "This field must be unique."}
             )
         return recipe
 
     def update(self, instance, validated_data):
-        recipe = self.create(validated_data)
-        instance.delete()
+        recipe = self.create(validated_data, update_obj_id=instance.id)
         return recipe
+
+    def to_representation(self, instance):
+        return GetRecipeSerializer(
+            instance, context={"request": self.context.get("request")}
+        ).data
 
 
 class RecipeBriefSerializer(serializers.ModelSerializer):
@@ -200,11 +231,93 @@ class RecipeBriefSerializer(serializers.ModelSerializer):
         )
 
 
-class SubscriptionSerializer(UserSerializer):
-    """Serializer for requests to endpoints of 'Subscriptions' resource."""
+class FavoriteSerializer(serializers.ModelSerializer):
+    """Serializer for requests to endpoints of 'Favorites' resource."""
+
+    class Meta:
+        model = Favorite
+        fields = ("user", "recipe")
+
+    def validate(self, attrs):
+        recipe_id = attrs["recipe"].id
+        if Favorite.objects.filter(
+            user=self.context["request"].user, recipe_id=recipe_id
+        ).exists():
+            message = (
+                f"The recipe with id={recipe_id} "
+                f"was added to favorites earlier."
+            )
+            raise serializers.ValidationError({"errors": message})
+        return attrs
+
+    def to_representation(self, instance):
+        return RecipeBriefSerializer(
+            instance.recipe, context={"request": self.context.get("request")}
+        ).data
+
+
+class ShoppingCartSerializer(serializers.ModelSerializer):
+    """Serializer for requests to endpoints of 'Shopping list' resource."""
+
+    class Meta:
+        model = ShoppingCart
+        fields = ("user", "recipe")
+
+    def validate(self, attrs):
+        recipe_id = attrs["recipe"].id
+        if ShoppingCart.objects.filter(
+            user=self.context["request"].user, recipe_id=recipe_id
+        ).exists():
+            message = (
+                f"The recipe with id={recipe_id} "
+                f"was added to the shopping list earlier."
+            )
+            raise serializers.ValidationError({"errors": message})
+        return attrs
+
+    def to_representation(self, instance):
+        request = self.context.get("request")
+        return RecipeBriefSerializer(
+            instance.recipe, context={"request": request}
+        ).data
+
+
+class SubscribeSerializer(serializers.ModelSerializer):
+    """Serializer for Post request to endpoint of 'Subscriptions' resource."""
+
+    class Meta:
+        model = Subscription
+        fields = ("user", "author")
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        author = attrs["author"]
+        if Subscription.objects.filter(user=user, author=author).exists():
+            message = (
+                f"The subscription to the author with id={author.id} "
+                f"was created earlier."
+            )
+            raise serializers.ValidationError({"errors": message})
+        if user == author:
+            raise serializers.ValidationError(
+                {"errors": "Subscribing to yourself is not allowed."}
+            )
+        return attrs
+
+    def to_representation(self, instance):
+        author = instance.author
+        author.recipes_count = author.recipes.values().count()
+        return SubscriptionsSerializer(
+            author, context={"request": self.context.get("request")}
+        ).data
+
+
+class SubscriptionsSerializer(UserSerializer):
+    """Serializer for requests to users/subscriptions/ endpoint."""
 
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+    is_subscribed = serializers.BooleanField(default=True)
+    recipes_count = serializers.IntegerField()
 
     class Meta:
         model = User
@@ -220,21 +333,10 @@ class SubscriptionSerializer(UserSerializer):
         )
 
     def get_recipes(self, obj):
-        recipes = Recipe.objects.filter(author=obj)
-        recipes_limit = self.context["request"].query_params.get(
-            "recipes_limit"
+        request = self.context.get("request")
+        serializer = RecipeBriefSerializer(
+            LimitPagination().paginate_queryset(obj.recipes.all(), request),
+            many=True,
+            context={"request": request},
         )
-        if recipes_limit is not None:
-            try:
-                recipes = recipes[: int(recipes_limit)]
-            except (ValueError, AssertionError):
-                message = (
-                    f"Invalid query parameter value: "
-                    f"recipes_limit={recipes_limit}."
-                )
-                raise serializers.ValidationError({"errors": message})
-        serializer = RecipeBriefSerializer(instance=recipes, many=True)
         return serializer.data
-
-    def get_recipes_count(self, obj):
-        return Recipe.objects.filter(author=obj).count()

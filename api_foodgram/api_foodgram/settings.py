@@ -139,6 +139,12 @@ DJOSER = {
     "PERMISSIONS": {
         "user": ["rest_framework.permissions.IsAuthenticated"],
         "user_list": ["rest_framework.permissions.AllowAny"],
+        "activation": ["api.v1.permissions.DeniedAny"],
+        "password_reset": ["api.v1.permissions.DeniedAny"],
+        "password_reset_confirm": ["api.v1.permissions.DeniedAny"],
+        "username_reset": ["api.v1.permissions.DeniedAny"],
+        "username_reset_confirm": ["api.v1.permissions.DeniedAny"],
+        "set_username": ["api.v1.permissions.DeniedAny"],
     },
     "SERIALIZERS": {
         "user_create": "api.v1.serializers.CustomUserCreateSerializer",
@@ -146,3 +152,9 @@ DJOSER = {
         "current_user": "api.v1.serializers.UserSerializer",
     },
 }
+
+# Pagination options
+PAGE_SIZE = 6
+MAX_PAGE_SIZE = 24
+DEFAULT_LIMIT = 3
+MAX_LIMIT = 7

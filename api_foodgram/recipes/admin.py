@@ -7,7 +7,7 @@ from recipes.models import (
     Favorite,
     Ingredient,
     Recipe,
-    RecipeIngredients,
+    RecipeIngredient,
     ShoppingCart,
     Tag,
 )
@@ -41,12 +41,13 @@ class TagAdmin(StaffAllowedModelAdmin):
         "slug",
     )
     search_fields = ("name",)
+    prepopulated_fields = {"slug": ("name",)}
 
 
 class RecipeIngredientsInline(admin.TabularInline, StaffAllowedBaseModelAdmin):
     """Table settings for 'RecipeIngredients' model on the admin site."""
 
-    model = RecipeIngredients
+    model = RecipeIngredient
     min_num = 1
     extra = 5
 
@@ -54,18 +55,6 @@ class RecipeIngredientsInline(admin.TabularInline, StaffAllowedBaseModelAdmin):
 @admin.register(Recipe)
 class RecipeAdmin(StaffAllowedModelAdmin):
     """Table settings for resource 'Recipe' on the admin site."""
-
-    @staticmethod
-    def in_favorite(obj):
-        return obj.in_favorite
-
-    def get_queryset(self, request):
-        """Annotating objects with "in_favorite" value."""
-        qs = Recipe.objects.annotate(in_favorite=Count("favorites"))
-        ordering = self.get_ordering(request)
-        if ordering:
-            qs.order_by(*ordering)
-        return qs
 
     list_display = (
         "pk",
@@ -81,6 +70,18 @@ class RecipeAdmin(StaffAllowedModelAdmin):
     filter_horizontal = ("tags",)
     search_fields = ("author", "name", "tags")
     list_filter = ("author", "name", "tags")
+
+    @staticmethod
+    def in_favorite(obj):
+        return obj.in_favorite
+
+    def get_queryset(self, request):
+        """Annotating objects with "in_favorite" value."""
+        qs = Recipe.objects.annotate(in_favorite=Count("favorites"))
+        ordering = self.get_ordering(request)
+        if ordering:
+            qs.order_by(*ordering)
+        return qs
 
 
 @admin.register(Favorite)

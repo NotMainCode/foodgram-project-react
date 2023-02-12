@@ -1,6 +1,6 @@
 """Database settings of the 'Recipes' application."""
 
-from django.core.validators import MinValueValidator, validate_slug
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from recipes.validators import validate_hex_format_color
@@ -57,7 +57,6 @@ class Tag(models.Model):
         unique=True,
         verbose_name="tag URL (slug)",
         help_text="Enter tag URL (slug)",
-        validators=(validate_slug,),
     )
 
     class Meta:
@@ -102,7 +101,7 @@ class Recipe(models.Model):
     )
     ingredients = models.ManyToManyField(
         Ingredient,
-        through="RecipeIngredients",
+        through="RecipeIngredient",
         related_name="recipes",
         verbose_name="ingredients",
         help_text="Add ingredient",
@@ -127,7 +126,7 @@ class Recipe(models.Model):
         return self.name
 
 
-class RecipeIngredients(models.Model):
+class RecipeIngredient(models.Model):
     """Intermediary model for amount of ingredient in recipe."""
 
     recipe = models.ForeignKey(
@@ -136,7 +135,7 @@ class RecipeIngredients(models.Model):
     )
     ingredient = models.ForeignKey(
         Ingredient,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
     )
     amount = models.PositiveSmallIntegerField(
         verbose_name="amount",
@@ -161,7 +160,7 @@ class Favorite(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="chooser",
+        related_name="favorites",
         verbose_name="chooser",
     )
     recipe = models.ForeignKey(
@@ -188,13 +187,13 @@ class ShoppingCart(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="customer",
+        related_name="carts",
         verbose_name="customer",
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name="order",
+        related_name="carts",
         verbose_name="recipe",
     )
 

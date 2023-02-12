@@ -2,6 +2,7 @@
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import F, Q
 
 
 class User(AbstractUser):
@@ -41,5 +42,8 @@ class Subscription(models.Model):
         constraints = (
             models.UniqueConstraint(
                 fields=["user", "author"], name="unique_subscription"
+            ),
+            models.CheckConstraint(
+                check=~Q(user=F("author")), name="subscriber_not_author"
             ),
         )

@@ -8,9 +8,7 @@ class StaffAllowedBaseModelAdmin(BaseModelAdmin):
 
     @staticmethod
     def check_perm(user):
-        if user.is_active and (user.is_staff or user.is_superuser):
-            return True
-        return False
+        return user.is_active and (user.is_staff or user.is_superuser)
 
     def has_module_permission(self, request):
         return self.check_perm(request.user)

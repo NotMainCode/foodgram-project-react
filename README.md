@@ -1,5 +1,7 @@
 # API of project "Foodgram".
 
+![yamdb workflow](https://github.com/NotMainCode/foodgram-project-react/actions/workflows/yamdb_workflow.yaml/badge.svg)
+
 ## Description
 
 Users can publish recipes, subscribe to publications of other users, 

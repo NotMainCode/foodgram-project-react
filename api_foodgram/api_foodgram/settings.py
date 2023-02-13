@@ -12,7 +12,7 @@ SECRET_KEY = os.getenv(
 
 DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [os.getenv("SERVER_HOST", "127.0.0.1")]
 
 INTERNAL_IPS = ["127.0.0.1"]
 
@@ -64,22 +64,11 @@ TEMPLATES = [
 WSGI_APPLICATION = "api_foodgram.wsgi.application"
 
 DATABASES = {
-    "default": {
-        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
-        "NAME": os.getenv("POSTGRES_DB", "postgres"),
-        "USER": os.getenv("POSTGRES_USER", "postgres"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
-        "HOST": os.getenv("DB_HOST", "db"),
-        "PORT": os.getenv("DB_PORT", "5432"),
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
     }
-}
-
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
-#     }
-# }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -102,12 +91,12 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-STATIC_URL = "/static/django/"
-STATIC_ROOT = os.path.join(BASE_DIR, "static/")
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 STATICFILES_DIRS = ("./data",)
 STATICFILES_DIRS_DATA = os.path.join(BASE_DIR, "csv_data")
 
-MEDIA_URL = "/media/django/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Redefining the 'User' model
@@ -140,9 +129,9 @@ if DEBUG:
             ],
         }
     )
-
-CORS_ALLOWED_ORIGINS = ("http://localhost:3000",)
-CORS_URLS_REGEX = r"^/api.*$"
+    CORS_ALLOWED_ORIGINS = ("http://localhost:3000",)
+    CORS_URLS_REGEX = r"^/api.*$"
+    CSRF_TRUSTED_ORIGINS = ('http://localhost', 'http://127.0.0.1')
 
 # Djoser settings
 DJOSER = {

@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:13.0-alpine
+    restart: on-failure
+    env_file:
+      - ./.env
+    volumes:
+      - postgresql:/var/lib/postgresql/data/
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER} -p 5432" ]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+  frontend:
+    image: $DOCKER_REPO_FRONTEND:latest
+    volumes:
+      - frontend:/app/result_build/
+    depends_on:
+      - db
+  web:
+    image: $DOCKER_REPO:latest
+    restart: on-failure
+    volumes:
+      - static_value:/app/static/
+      - media_value:/app/media/
+    env_file:
+      - ./.env
+    depends_on:
+      - frontend
+    command: [
+      "./wait-for-it.sh", "db:5432", "--strict", "--timeout=300", "--", "./web_start.sh"
+    ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/admin" ]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+  nginx:
+    image: nginx:1.21.3-alpine
+    ports:
+      - "80:80"
+    restart: on-failure
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - frontend:/usr/share/nginx/html/
+      - static_value:/var/html/static/django/
+      - media_value:/var/html/media/django/
+    depends_on:
+      - web
+    healthcheck:
+      test: [ "CMD", "curl", "-f", $SERVER_URL ]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgresql:
+  static_value:
+  media_value:

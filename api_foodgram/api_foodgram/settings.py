@@ -12,7 +12,7 @@ SECRET_KEY = os.getenv(
 
 DEBUG = False
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [os.getenv("SERVER_HOST", "127.0.0.1")]
 
 INTERNAL_IPS = ["127.0.0.1"]
 
@@ -74,13 +74,6 @@ DATABASES = {
     }
 }
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
-#     }
-# }
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -105,7 +98,7 @@ USE_TZ = True
 STATIC_URL = "/static/django/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 STATICFILES_DIRS = ("./data",)
-STATICFILES_DIRS_DATA = os.path.join(BASE_DIR, "csv_data")
+STATICFILES_DIRS_DATA = os.path.join(BASE_DIR, "./csv_data")
 
 MEDIA_URL = "/media/django/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")

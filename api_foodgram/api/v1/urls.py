@@ -29,9 +29,9 @@ router_v1.register(
     "recipes/(?P<recipe_id>\d+)/favorite", FavoriteViewSet, basename="favorite"
 )
 router_v1.register(
-    "recipes/(?P<recipe_id>\d+)/shoping_cart",
+    "recipes/(?P<recipe_id>\d+)/shopping_cart",
     ShoppingCartViewSet,
-    basename="shoping_cart",
+    basename="shopping_cart",
 )
 router_v1.register(
     "users/(?P<author_id>\d+)/subscribe",

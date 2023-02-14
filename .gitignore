@@ -131,8 +131,7 @@ dmypy.json
 # .idea
 .idea
 
-# statics and media
-/api_foodgram/media/
+# static files
 /api_foodgram/static/
 
 # frontend dependencies

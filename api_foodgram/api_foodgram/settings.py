@@ -135,7 +135,7 @@ if DEBUG:
     )
     CORS_ALLOWED_ORIGINS = ("http://localhost:3000",)
     CORS_URLS_REGEX = r"^/api.*$"
-    CSRF_TRUSTED_ORIGINS = ('http://localhost', 'http://127.0.0.1')
+    CSRF_TRUSTED_ORIGINS = ("http://localhost", "http://127.0.0.1")
 
 # Djoser settings
 DJOSER = {

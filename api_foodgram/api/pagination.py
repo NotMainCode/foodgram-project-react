@@ -1,10 +1,7 @@
 """Custom pagination."""
 
 from django.conf import settings
-from rest_framework.pagination import (
-    LimitOffsetPagination,
-    PageNumberPagination,
-)
+from rest_framework.pagination import PageNumberPagination
 
 
 class PageNumberLimitPagination(PageNumberPagination):
@@ -15,13 +12,12 @@ class PageNumberLimitPagination(PageNumberPagination):
     max_page_size = settings.MAX_PAGE_SIZE
 
 
-class LimitPagination(LimitOffsetPagination):
-    """"""
+class LimitPagination(PageNumberPagination):
+    """Custom pagination: item limit."""
 
-    limit_query_param = "recipes_limit"
-    offset_query_param = None
-    default_limit = settings.DEFAULT_LIMIT
-    max_limit = settings.MAX_LIMIT
+    page_size = settings.DEFAULT_LIMIT
+    page_size_query_param = "recipes_limit"
+    max_page_size = settings.MAX_LIMIT
 
     def get_paginated_response(self, data):
         return data

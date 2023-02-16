@@ -62,13 +62,15 @@ class RecipeAdmin(StaffAllowedModelAdmin):
         "name",
         "cooking_time",
         "in_favorite",
+        "pub_date",
+        "tags_display",
     )
     readonly_fields = ("in_favorite",)
     inlines = [
         RecipeIngredientsInline,
     ]
     filter_horizontal = ("tags",)
-    search_fields = ("author", "name", "tags")
+    search_fields = ("name",)
     list_filter = ("author", "name", "tags")
 
     @staticmethod
@@ -82,6 +84,11 @@ class RecipeAdmin(StaffAllowedModelAdmin):
         if ordering:
             qs.order_by(*ordering)
         return qs
+
+    def tags_display(self, obj):
+        return ", ".join([tag.name for tag in obj.tags.all()])
+
+    tags_display.short_description = "tags"
 
 
 @admin.register(Favorite)

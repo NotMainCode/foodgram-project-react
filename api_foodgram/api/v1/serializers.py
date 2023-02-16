@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 from djoser.serializers import UserCreateSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from api.pagination import LimitPagination
 from recipes.models import (
@@ -18,7 +19,7 @@ from users.models import Subscription, User
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
-    """Modified Djoser UserCreateSerializer ('Users' resource)."""
+    """Serializer for POST request to endpoint of 'Users' resource."""
 
     class Meta:
         model = User
@@ -32,8 +33,8 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         )
 
 
-class UserSerializer(serializers.ModelSerializer):
-    """Serializer for requests to endpoints of 'Users' resource."""
+class CustomUserSerializer(serializers.ModelSerializer):
+    """Serializer for GET requests to endpoints of 'Users' resource."""
 
     is_subscribed = serializers.BooleanField(read_only=True, default=False)
 
@@ -119,8 +120,10 @@ class GetRecipeSerializer(serializers.ModelSerializer):
     """Serializer for Get requests to endpoints of 'Recipes' resource."""
 
     tags = TagSerializer(many=True, read_only=True)
-    author = UserSerializer(read_only=True)
-    ingredients = serializers.SerializerMethodField()
+    author = CustomUserSerializer(read_only=True)
+    ingredients = RecipeIngredientsSerializer(
+        many=True, read_only=True, source="recipe_ingredient"
+    )
     is_favorited = serializers.BooleanField(read_only=True, default=False)
     is_in_shopping_cart = serializers.BooleanField(
         read_only=True, default=False
@@ -142,13 +145,6 @@ class GetRecipeSerializer(serializers.ModelSerializer):
             "cooking_time",
         )
 
-    def get_ingredients(self, obj):
-        recipe_ingredients = RecipeIngredient.objects.filter(recipe=obj)
-        serializer = RecipeIngredientsSerializer(
-            instance=recipe_ingredients, many=True
-        )
-        return serializer.data
-
 
 class PostPatchRecipeSerializer(GetRecipeSerializer):
     """Serializer for Post Patch requests to endpoints of Recipes resource."""
@@ -156,6 +152,7 @@ class PostPatchRecipeSerializer(GetRecipeSerializer):
     tags = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Tag.objects.all()
     )
+    author = CustomUserSerializer(default=serializers.CurrentUserDefault())
     ingredients = IngredientAmountSerializer(many=True)
 
     class Meta:
@@ -173,33 +170,21 @@ class PostPatchRecipeSerializer(GetRecipeSerializer):
             "cooking_time",
         )
 
-    @transaction.atomic
-    def create(self, validated_data, update_obj_id=None):
-        tags = validated_data.pop("tags")
-        ingredients = validated_data.pop("ingredients")
-        instance_data = validated_data
-        instance_data["author"] = self.context["request"].user
-        recipe, created = Recipe.objects.update_or_create(
-            id=update_obj_id,
-            defaults=instance_data,
-        )
-        recipe.tags.set(tags)
-        for ingredient in ingredients:
-            ingredient["id"] = ingredient["id"].id
-        data = {"recipe": recipe.id, "ingredients": ingredients}
-        serializer = RecipeIngredientsSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        if not created:
-            RecipeIngredient.objects.filter(recipe=recipe).delete()
+    @staticmethod
+    def extract_tags_ingredients(data):
+        return data.pop("tags"), data.pop("ingredients")
+
+    @staticmethod
+    def add_ingredients_to_recipe(recipe, ingredients):
         try:
             RecipeIngredient.objects.bulk_create(
                 [
                     RecipeIngredient(
-                        recipe=serializer.validated_data["recipe"],
+                        recipe=recipe,
                         ingredient=ingredient["id"],
                         amount=ingredient["amount"],
                     )
-                    for ingredient in serializer.validated_data["ingredients"]
+                    for ingredient in ingredients
                 ],
             )
         except IntegrityError:
@@ -208,9 +193,21 @@ class PostPatchRecipeSerializer(GetRecipeSerializer):
             )
         return recipe
 
+    @transaction.atomic
+    def create(self, validated_data, update_obj_id=None):
+        tags, ingredients = self.extract_tags_ingredients(validated_data)
+        recipe = Recipe.objects.create(**validated_data)
+        recipe.tags.set(tags)
+        return self.add_ingredients_to_recipe(recipe, ingredients)
+
+    @transaction.atomic
     def update(self, instance, validated_data):
-        recipe = self.create(validated_data, update_obj_id=instance.id)
-        return recipe
+        tags, ingredients = self.extract_tags_ingredients(validated_data)
+        instance.__dict__.update(validated_data)
+        instance.save()
+        instance.tags.set(tags)
+        RecipeIngredient.objects.filter(recipe=instance).delete()
+        return self.add_ingredients_to_recipe(instance, ingredients)
 
     def to_representation(self, instance):
         return GetRecipeSerializer(
@@ -234,21 +231,18 @@ class RecipeBriefSerializer(serializers.ModelSerializer):
 class FavoriteSerializer(serializers.ModelSerializer):
     """Serializer for requests to endpoints of 'Favorites' resource."""
 
+    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all())
+
     class Meta:
         model = Favorite
         fields = ("user", "recipe")
-
-    def validate(self, attrs):
-        recipe_id = attrs["recipe"].id
-        if Favorite.objects.filter(
-            user=self.context["request"].user, recipe_id=recipe_id
-        ).exists():
-            message = (
-                f"The recipe with id={recipe_id} "
-                f"was added to favorites earlier."
-            )
-            raise serializers.ValidationError({"errors": message})
-        return attrs
+        validators = (
+            UniqueTogetherValidator(
+                queryset=Favorite.objects.all(),
+                fields=("user", "recipe"),
+                message="Recipe was added to favorites earlier.",
+            ),
+        )
 
     def to_representation(self, instance):
         return RecipeBriefSerializer(
@@ -259,46 +253,44 @@ class FavoriteSerializer(serializers.ModelSerializer):
 class ShoppingCartSerializer(serializers.ModelSerializer):
     """Serializer for requests to endpoints of 'Shopping list' resource."""
 
+    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all())
+
     class Meta:
         model = ShoppingCart
         fields = ("user", "recipe")
-
-    def validate(self, attrs):
-        recipe_id = attrs["recipe"].id
-        if ShoppingCart.objects.filter(
-            user=self.context["request"].user, recipe_id=recipe_id
-        ).exists():
-            message = (
-                f"The recipe with id={recipe_id} "
-                f"was added to the shopping list earlier."
-            )
-            raise serializers.ValidationError({"errors": message})
-        return attrs
+        validators = (
+            UniqueTogetherValidator(
+                queryset=ShoppingCart.objects.all(),
+                fields=("user", "recipe"),
+                message="Recipe was added to the shopping list earlier.",
+            ),
+        )
 
     def to_representation(self, instance):
-        request = self.context.get("request")
         return RecipeBriefSerializer(
-            instance.recipe, context={"request": request}
+            instance.recipe, context={"request": self.context.get("request")}
         ).data
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
     """Serializer for Post request to endpoint of 'Subscriptions' resource."""
 
+    author = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
     class Meta:
         model = Subscription
         fields = ("user", "author")
+        validators = (
+            UniqueTogetherValidator(
+                queryset=Subscription.objects.all(),
+                fields=("user", "author"),
+                message="Subscription to this author was created earlier.",
+            ),
+        )
 
     def validate(self, attrs):
-        user = self.context["request"].user
-        author = attrs["author"]
-        if Subscription.objects.filter(user=user, author=author).exists():
-            message = (
-                f"The subscription to the author with id={author.id} "
-                f"was created earlier."
-            )
-            raise serializers.ValidationError({"errors": message})
-        if user == author:
+        print(attrs)
+        if self.context["request"].user == attrs["author"]:
             raise serializers.ValidationError(
                 {"errors": "Subscribing to yourself is not allowed."}
             )
@@ -312,7 +304,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
         ).data
 
 
-class SubscriptionsSerializer(UserSerializer):
+class SubscriptionsSerializer(CustomUserSerializer):
     """Serializer for requests to users/subscriptions/ endpoint."""
 
     recipes = serializers.SerializerMethodField()

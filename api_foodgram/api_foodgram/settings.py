@@ -12,7 +12,7 @@ SECRET_KEY = os.getenv(
 
 DEBUG = False
 
-ALLOWED_HOSTS = [os.getenv("SERVER_HOST", "127.0.0.1")]
+ALLOWED_HOSTS = [os.getenv("SERVER_HOST", "*")]
 
 INTERNAL_IPS = ["127.0.0.1"]
 
@@ -63,7 +63,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "api_foodgram.wsgi.application"
 
-DATABASES = {
+DEBUG_TRUE_DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+    }
+}
+
+DEBUG_FALSE_DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
         "NAME": os.getenv("POSTGRES_DB", "postgres"),
@@ -73,6 +80,11 @@ DATABASES = {
         "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
+
+if DEBUG:
+    DATABASES = DEBUG_TRUE_DATABASES
+else:
+    DATABASES = DEBUG_FALSE_DATABASES
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -140,22 +152,6 @@ if DEBUG:
 # Djoser settings
 DJOSER = {
     "LOGIN_FIELD": "email",
-    "HIDE_USERS": False,
-    "PERMISSIONS": {
-        "user": ["rest_framework.permissions.IsAuthenticated"],
-        "user_list": ["rest_framework.permissions.AllowAny"],
-        "activation": ["api.v1.permissions.DeniedAny"],
-        "password_reset": ["api.v1.permissions.DeniedAny"],
-        "password_reset_confirm": ["api.v1.permissions.DeniedAny"],
-        "username_reset": ["api.v1.permissions.DeniedAny"],
-        "username_reset_confirm": ["api.v1.permissions.DeniedAny"],
-        "set_username": ["api.v1.permissions.DeniedAny"],
-    },
-    "SERIALIZERS": {
-        "user_create": "api.v1.serializers.CustomUserCreateSerializer",
-        "user": "api.v1.serializers.UserSerializer",
-        "current_user": "api.v1.serializers.UserSerializer",
-    },
 }
 
 # Pagination options

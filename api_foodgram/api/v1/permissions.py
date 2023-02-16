@@ -1,10 +1,6 @@
 """Custom permissions."""
 
-from rest_framework.permissions import (
-    BasePermission,
-    IsAuthenticatedOrReadOnly,
-    SAFE_METHODS,
-)
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, SAFE_METHODS
 
 
 class IsAuthorOrReadOnly(IsAuthenticatedOrReadOnly):
@@ -14,12 +10,3 @@ class IsAuthorOrReadOnly(IsAuthenticatedOrReadOnly):
 
     def has_object_permission(self, request, view, obj):
         return request.method in SAFE_METHODS or request.user == obj.author
-
-
-class DeniedAny(BasePermission):
-    """Forbidden to all."""
-
-    message = "Forbidden."
-
-    def has_permission(self, request, view):
-        return False

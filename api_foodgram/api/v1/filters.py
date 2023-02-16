@@ -27,8 +27,10 @@ class RecipeFilter(rest_framework.FilterSet):
 class IngredientSearchFilter(filters.SearchFilter):
     """Filter for 'Ingredients' resource."""
 
+    search_param = "name"
+
     def filter_queryset(self, request, queryset, view):
-        name = request.query_params.get("name")
+        name = request.query_params.get(self.search_param)
         if name is not None:
             queryset = queryset.annotate(
                 ingredient_order=Case(
@@ -37,5 +39,5 @@ class IngredientSearchFilter(filters.SearchFilter):
                     default=0,
                     output_field=IntegerField(),
                 )
-            ).exclude(ingredient_order=0).order_by("ingredient_order")
+            ).exclude(ingredient_order=0).order_by("ingredient_order", "name")
         return queryset

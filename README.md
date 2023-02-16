@@ -1,4 +1,4 @@
-# API of project "Foodgram".
+# Foodgram
 
 ![yamdb workflow](https://github.com/NotMainCode/foodgram-project-react/actions/workflows/yamdb_workflow.yaml/badge.svg)
 
@@ -36,32 +36,11 @@ In the standard Django admin panel, the administrator can additionally:
 - Add/remove/edit ingredients
 - Add/remove/edit tags
 
+### The project is temporarily available at the links:
 
-###
-Full API documentation is available at endpoint: ```redoc/```
+[Foodgram](http://51.250.25.37/admin)
 
-## Examples of requests
-
-- user registration *(POST)*
->api/v1/users/ 
->```json
->{
->  "email": "my_email",
->  "username": "my_username",
->  "first_name": "my_first_name",
->  "last_name": "my_last_name",
->  "password": "my_password"
->}
->```
-
-- getting token *(POST)*
->/api/v1/auth/token/login/ 
->```json
->{
->  "password": "my_password",
->  "email": "my_email"
->}
->```
+[Foodgram Admin Site](http://51.250.25.37/admin)
 
 ## Technology
 
@@ -73,32 +52,96 @@ Django REST framework 3.12.4
 
 Djoser 2.1.0
 
+Docker 20.10.22
+
+Docker Compose 2.14.2
+
+PostgreSQL 13.0-alpine
+
+Nginx 1.21.3-alpine
+
+GitHub Actions
+
+### Triggers of GitHub Actions workflow
+- ```push to any branch``` - running flake8 tests
+- ```push to master branch``` - pushing the app image to the DockerHub repository, 
+running project on remote server, sending Telegram message about the successful completion of the workflow.
+Django app: collectstatic, migrate
+
 ## Launch
 
-Create and activate virtual environment
+- Create secret repository variables ([documentation](https://docs.github.com/en/actions/learn-github-actions/variables#creating-configuration-variables-for-an-environment)).
 ```
-py -3.7 -m venv venv
+DOCKER_USERNAME=<docker_username>
+DOCKER_PASSWORD=<docker_password>
+DOCKER_REPO=<docker_username>/<image name>
+SERVER_HOST=<server_pub_ip>
+SERVER_PASSPHRASE=<server_passphrase>
+SERVER_USER=<username>
+SSH_KEY=<--BEGIN OPENSSH PRIVATE KEY--...--END OPENSSH PRIVATE KEY--> # cat ~/.ssh/id_rsa
+TELEGRAM_TO=<telegram_account_ID> # https://telegram.im/@userinfobot?lang=en
+TELEGRAM_TOKEN=<telegram_bot_token> # https://t.me/botfather
 
-source venv/Scripts/activate
+
+- ENV_FILE variable value
+
+DB_ENGINE=django.db.backends.postgresql
+POSTGRES_DB=<database name>
+POSTGRES_USER=<username>
+POSTGRES_PASSWORD=<password> 
+DB_HOST=db
+DB_PORT=5432
+DJANGO_SECRET_KEY=<Django_secret_key>
+DOCKER_REPO=<docker_username>/<image name>
+DOCKER_REPO_FRONTEND=<docker_username>/<image name>
+SERVER_HOST=<server_pub_ip>
+SERVER_URL=http://<server_pub_ip>/admin
 ```
 
-Install dependencies from requirements.txt file
-```
-pip install -r requirements.txt
+
+- Copy *docker-compose.yaml* and *nginx* files to the server.
+```shell
+scp <path_to_file>/docker-compose.yaml <username>@<server_pub_ip>:/home/<username>
+scp <path_to_file>/nginx.conf <username>@<server_pub_ip>:/home/<username>
 ```
 
-Perform migrations
-```
-py manage.py migrate
-```
-
-Run project
-```
-py manage.py runserver 8008
+- Connect to the server.
+```shell
+ssh <username>@<server_pub_ip>
 ```
 
-Project available at http://127.0.0.1:8008/admin/
+Install [docker](https://docs.docker.com/engine/install/ubuntu/)
+and [compose plugin](https://docs.docker.com/compose/install/linux/#install-the-plugin-manually).
+Follow the [steps after installing Docker Engine](https://docs.docker.com/engine/install/linux-postinstall/).
+###
+
+After activation and successful completion of the GitHub Actions workflow,
+the project is available at:
+
+```http://<server_pub_ip>/``` ```http://<server_pub_ip>/admin/```
+
+###
+
+- Create superuser
+```shell
+docker compose exec web python manage.py createsuperuser
+```
+
+- Enter test data into the database
+>docker compose exec web python manage.py loaddata dump.json
+>```
+>| Username  |  Email   | Password |
+>|-----------|----------|----------|
+>| User      | uu@uu.uu | foodgram |
+>| AdminUser | au@au.au | foodgram |
+>| SuperUser | su@su.su | foodgram |
+>```
+
+- Create a database dump
+```shell
+docker compose exec web python manage.py dumpdata > db_dump.json
+```
 
 ## Author
 
-[NotMainCode](https://github.com/NotMainCode) (backend)
+[NotMainCode](https://github.com/NotMainCode) (backend, CI/CD)

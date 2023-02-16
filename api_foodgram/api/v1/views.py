@@ -1,6 +1,5 @@
 """URLs request handlers of the 'api' application."""
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import (
     Count,
     Exists,
@@ -8,23 +7,18 @@ from django.db.models import (
     Sum,
 )
 from django.http.response import HttpResponse
-from django.shortcuts import get_object_or_404
 from django_filters import rest_framework
-from djoser.views import UserViewSet
-from rest_framework import serializers, status, viewsets
-from rest_framework.decorators import action, api_view
-from rest_framework.permissions import AllowAny
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from api.mixins import (
-    CreateDestroyViewSet,
-    GetPostPatchDeleteViewSet,
-    ListViewSet,
-)
 from api.pagination import PageNumberLimitPagination
 from api.v1.filters import IngredientSearchFilter, RecipeFilter
 from api.v1.permissions import IsAuthorOrReadOnly
 from api.v1.serializers import (
+    CustomUserCreateSerializer,
+    CustomUserSerializer,
     FavoriteSerializer,
     GetRecipeSerializer,
     IngredientSerializer,
@@ -33,6 +27,11 @@ from api.v1.serializers import (
     SubscribeSerializer,
     SubscriptionsSerializer,
     TagSerializer,
+)
+from api.viewsets import (
+    CustomCreateDestroyViewSet,
+    GetPostPatchDeleteViewSet,
+    GetPostViewSet,
 )
 from recipes.models import (
     Favorite,
@@ -45,13 +44,17 @@ from recipes.models import (
 from users.models import Subscription, User
 
 
-class CustomUserViewSet(UserViewSet):
+class CustomUserViewSet(GetPostViewSet):
     """URL requests handler to 'Users' resource endpoints."""
 
-    http_method_names = ("get", "post", "head", "options")
+    permission_classes = (AllowAny,)
     pagination_class = PageNumberLimitPagination
 
     def get_queryset(self):
+        if self.action == "subscriptions":
+            return User.objects.filter(
+                subscription__user=self.request.user
+            ).annotate(recipes_count=(Count("recipes")))
         queryset = User.objects.all()
         user = self.request.user
         if self.request.method == "GET" and user.is_authenticated:
@@ -60,6 +63,21 @@ class CustomUserViewSet(UserViewSet):
             )
             queryset = queryset.annotate(is_subscribed=(Exists(subquery)))
         return queryset
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return CustomUserCreateSerializer
+        elif self.action == "subscriptions":
+            return SubscriptionsSerializer
+        return CustomUserSerializer
+
+    @action(detail=False, permission_classes=(IsAuthenticated,))
+    def me(self, request):
+        return Response(self.get_serializer(request.user).data)
+
+    @action(detail=False, permission_classes=(IsAuthenticated,))
+    def subscriptions(self, request):
+        return super().list(self, request)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -114,132 +132,52 @@ class RecipeViewSet(GetPostPatchDeleteViewSet):
             )
         return queryset
 
+    @action(detail=False, permission_classes=(IsAuthenticated,))
+    def download_shopping_cart(self, request):
+        ingredients = [
+            *RecipeIngredient.objects.filter(
+                recipe__carts__user=request.user
+            ).select_related(
+                "ingredient"
+            ).values_list(
+                "ingredient__name",
+                "ingredient__measurement_unit",
+            ).annotate(Sum("amount")).order_by("ingredient__name")
+        ]
+        shopping_list = (
+            (" ".join((str(element) for element in ingredient)) + "\n")
+            for ingredient in ingredients
+        )
+        return HttpResponse(
+            shopping_list, content_type="text/plain", status=status.HTTP_200_OK
+        )
 
-class FavoriteViewSet(CreateDestroyViewSet):
+
+class FavoriteViewSet(CustomCreateDestroyViewSet):
     """URL requests handler to 'Favorites' resource endpoints."""
 
     serializer_class = FavoriteSerializer
-
-    def get_queryset(self):
-        return Favorite.objects.filter(user=self.request.user)
-
-    def create(self, request, *args, **kwargs):
-        recipe = get_object_or_404(Recipe, id=kwargs["recipe_id"])
-        data = {"user": request.user.id, "recipe": recipe.id}
-        serializer = self.get_serializer_class()(
-            data=data, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(methods=("delete",), detail=False)
-    def delete(self, request, recipe_id):
-        try:
-            Favorite.objects.get(
-                user=request.user, recipe_id=recipe_id
-            ).delete()
-        except ObjectDoesNotExist:
-            return Response(
-                {"errors": "Recipe was not in the favorites."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    model = Favorite
+    request_instance_field = "recipe"
+    request_kwarg = "recipe_id"
+    error_message = "Recipe was not in the favorites."
 
 
-class ShoppingCartViewSet(CreateDestroyViewSet):
+class ShoppingCartViewSet(CustomCreateDestroyViewSet):
     """URL requests handler to 'Shopping list' resource endpoints."""
 
     serializer_class = ShoppingCartSerializer
-
-    def get_queryset(self):
-        return ShoppingCart.objects.filter(user=self.request.user)
-
-    def create(self, request, *args, **kwargs):
-        recipe = get_object_or_404(Recipe, id=kwargs["recipe_id"])
-        data = {"user": request.user.id, "recipe": recipe.id}
-        serializer = self.get_serializer_class()(
-            data=data, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(methods=("delete",), detail=False)
-    def delete(self, request, recipe_id):
-        try:
-            ShoppingCart.objects.get(
-                user=request.user, recipe_id=recipe_id
-            ).delete()
-        except ObjectDoesNotExist:
-            message = (
-                f"The recipe with id={recipe_id} was not in the shopping list."
-            )
-            raise serializers.ValidationError({"errors": message})
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    model = ShoppingCart
+    request_instance_field = "recipe"
+    request_kwarg = "recipe_id"
+    error_message = "Recipe was not in the shopping list."
 
 
-class SubscribeViewSet(CreateDestroyViewSet):
+class SubscribeViewSet(CustomCreateDestroyViewSet):
     """URL requests handler to  endpoints of 'Subscriptions' resource."""
 
     serializer_class = SubscribeSerializer
-
-    def get_queryset(self):
-        return Subscription.objects.filter(user=self.request.user)
-
-    def create(self, request, *args, **kwargs):
-        author = get_object_or_404(User, id=kwargs["author_id"])
-        data = {"user": request.user.id, "author": author.id}
-        serializer = self.get_serializer_class()(
-            data=data, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(methods=("delete",), detail=False)
-    def delete(self, request, author_id):
-        try:
-            Subscription.objects.get(
-                user=request.user, author_id=author_id
-            ).delete()
-        except ObjectDoesNotExist:
-            message = (
-                f"There was no subscription to the author with id={author_id}."
-            )
-            raise serializers.ValidationError({"errors": message})
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class SubscriptionsViewSet(ListViewSet):
-    """URL requests handler to users/subscriptions/ endpoint."""
-
-    serializer_class = SubscriptionsSerializer
-    pagination_class = PageNumberLimitPagination
-
-    def get_queryset(self):
-        return User.objects.filter(
-            subscription__user=self.request.user
-        ).annotate(recipes_count=(Count("recipes")))
-
-
-@api_view()
-def download_shopping_cart(request):
-    """URL requests handler to recipes/download_shopping_cart/ endpoint."""
-    ingredients = [
-        *RecipeIngredient.objects.filter(
-            recipe__carts__user=request.user
-        ).select_related(
-            "ingredient"
-        ).values_list(
-            "ingredient__name",
-            "ingredient__measurement_unit",
-        ).annotate(Sum("amount")).order_by("ingredient__name")
-    ]
-    shopping_list = (
-        (" ".join((str(element) for element in ingredient)) + "\n")
-        for ingredient in ingredients
-    )
-    return HttpResponse(
-        shopping_list, content_type="text/plain", status=status.HTTP_200_OK
-    )
+    model = Subscription
+    request_instance_field = "author"
+    request_kwarg = "author_id"
+    error_message = "There was no subscription to this author."

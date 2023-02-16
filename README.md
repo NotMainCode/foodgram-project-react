@@ -38,9 +38,9 @@ In the standard Django admin panel, the administrator can additionally:
 
 ### The project is temporarily available at the links:
 
-[Foodgram](http://51.250.25.37/admin)
+[Foodgram](http://158.160.17.67/admin)
 
-[Foodgram Admin Site](http://51.250.25.37/admin)
+[Foodgram Admin Site](http://158.160.17.67/admin)
 
 ## Technology
 
@@ -52,9 +52,9 @@ Django REST framework 3.12.4
 
 Djoser 2.1.0
 
-Docker 20.10.22
+Docker 23.0.0
 
-Docker Compose 2.14.2
+Docker Compose 2.15.1
 
 PostgreSQL 13.0-alpine
 

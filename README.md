@@ -38,7 +38,7 @@ In the standard Django admin panel, the administrator can additionally:
 
 ### The project is temporarily available at the links:
 
-[Foodgram](http://158.160.17.67/admin)
+[Foodgram](http://158.160.17.67/recipes)
 
 [Foodgram Admin Site](http://158.160.17.67/admin)
 

@@ -152,10 +152,13 @@ if DEBUG:
 # Djoser settings
 DJOSER = {
     "LOGIN_FIELD": "email",
+    "SERIALIZERS": {
+        "current_user": "api.v1.serializers.CustomUserSerializer",
+    },
 }
 
 # Pagination options
 PAGE_SIZE = 6
 MAX_PAGE_SIZE = 24
-DEFAULT_LIMIT = 3
+DEFAULT_LIMIT = 0
 MAX_LIMIT = 7

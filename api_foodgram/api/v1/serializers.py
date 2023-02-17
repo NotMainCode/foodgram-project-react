@@ -203,8 +203,7 @@ class PostPatchRecipeSerializer(GetRecipeSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         tags, ingredients = self.extract_tags_ingredients(validated_data)
-        instance.__dict__.update(validated_data)
-        instance.save()
+        super().update(instance, validated_data)
         instance.tags.set(tags)
         RecipeIngredient.objects.filter(recipe=instance).delete()
         return self.add_ingredients_to_recipe(instance, ingredients)
@@ -288,13 +287,12 @@ class SubscribeSerializer(serializers.ModelSerializer):
             ),
         )
 
-    def validate(self, attrs):
-        print(attrs)
-        if self.context["request"].user == attrs["author"]:
+    def validate_author(self, value):
+        if self.context["request"].user == value:
             raise serializers.ValidationError(
                 {"errors": "Subscribing to yourself is not allowed."}
             )
-        return attrs
+        return value
 
     def to_representation(self, instance):
         author = instance.author

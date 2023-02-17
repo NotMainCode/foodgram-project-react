@@ -40,6 +40,10 @@ djoser_urlpatterns = [
         "users/set_password/",
         UserViewSet.as_view({"post": "set_password"}),
     ),
+    path(
+        "users/me/",
+        UserViewSet.as_view({"get": "me"}),
+    ),
 ]
 
 urlpatterns = [

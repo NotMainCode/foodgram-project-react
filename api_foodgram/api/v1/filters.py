@@ -1,8 +1,10 @@
 """Custom filters."""
 
+from django.core.exceptions import FieldError
 from django.db.models import Case, IntegerField, Value, When
 from django_filters import rest_framework
 from rest_framework import filters
+from rest_framework.exceptions import NotAuthenticated
 
 from recipes.models import Recipe, Tag
 
@@ -22,6 +24,12 @@ class RecipeFilter(rest_framework.FilterSet):
     class Meta:
         model: Recipe
         fields = ("author", "is_favorited", "is_in_shopping_cart", "tags")
+
+    def filter_queryset(self, queryset):
+        try:
+            return super().filter_queryset(queryset)
+        except FieldError:
+            raise NotAuthenticated()
 
 
 class IngredientSearchFilter(filters.SearchFilter):

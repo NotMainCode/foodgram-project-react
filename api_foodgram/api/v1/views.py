@@ -8,10 +8,9 @@ from django.db.models import (
 )
 from django.http.response import HttpResponse
 from django_filters import rest_framework
-from rest_framework import status, viewsets
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
 
 from api.pagination import PageNumberLimitPagination
 from api.v1.filters import IngredientSearchFilter, RecipeFilter
@@ -67,13 +66,9 @@ class CustomUserViewSet(GetPostViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return CustomUserCreateSerializer
-        elif self.action == "subscriptions":
+        if self.action == "subscriptions":
             return SubscriptionsSerializer
         return CustomUserSerializer
-
-    @action(detail=False, permission_classes=(IsAuthenticated,))
-    def me(self, request):
-        return Response(self.get_serializer(request.user).data)
 
     @action(detail=False, permission_classes=(IsAuthenticated,))
     def subscriptions(self, request):
@@ -148,9 +143,7 @@ class RecipeViewSet(GetPostPatchDeleteViewSet):
             (" ".join((str(element) for element in ingredient)) + "\n")
             for ingredient in ingredients
         )
-        return HttpResponse(
-            shopping_list, content_type="text/plain", status=status.HTTP_200_OK
-        )
+        return HttpResponse(shopping_list, content_type="text/plain")
 
 
 class FavoriteViewSet(CustomCreateDestroyViewSet):

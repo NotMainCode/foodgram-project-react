@@ -28,11 +28,9 @@ class CustomCreateDestroyViewSet(
 ):
     """Base viewset for resources: Favorites, Subscriptions, Shopping list"""
 
-    def get_request_instance_field_kwarg(self):
-        return (
-            getattr(self, "request_instance_field"),
-            getattr(self, "request_kwarg"),
-        )
+    request_instance_field = None
+    request_kwarg = None
+    error_message = None
 
     def get_queryset(self):
         return getattr(self, "model", None).objects.filter(
@@ -40,8 +38,10 @@ class CustomCreateDestroyViewSet(
         )
 
     def create(self, request, *args, **kwargs):
-        instance_field, kwarg = self.get_request_instance_field_kwarg()
-        data = {"user": request.user.id, instance_field: kwargs[kwarg]}
+        data = {
+            "user": request.user.id,
+            self.request_instance_field: kwargs[self.request_kwarg],
+        }
         serializer = self.get_serializer_class()(
             data=data, context={"request": request}
         )
@@ -56,7 +56,5 @@ class CustomCreateDestroyViewSet(
                 user=request.user, **kwargs
             ).delete()
         except ObjectDoesNotExist:
-            raise serializers.ValidationError(
-                {"errors": getattr(self, "error_message")}
-            )
+            raise serializers.ValidationError({"errors": self.error_message})
         return Response(status=status.HTTP_204_NO_CONTENT)

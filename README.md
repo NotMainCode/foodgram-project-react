@@ -42,6 +42,8 @@ In the standard Django admin panel, the administrator can additionally:
 
 [Foodgram Admin Site](http://158.160.17.67/admin)
 
+[Foodgram API documentation](http://158.160.17.67/api/docs/redoc.html)
+
 ## Technology
 
 Python 3.7
@@ -99,10 +101,11 @@ SERVER_URL=http://<server_pub_ip>/admin
 ```
 
 
-- Copy *docker-compose.yaml* and *nginx* files to the server.
+- Copy *docker-compose.yml*, *nginx* files and *docs/* folder to the server.
 ```shell
-scp <path_to_file>/docker-compose.yaml <username>@<server_pub_ip>:/home/<username>
+scp <path_to_file>/docker-compose.yml <username>@<server_pub_ip>:/home/<username>
 scp <path_to_file>/nginx.conf <username>@<server_pub_ip>:/home/<username>
+scp -r <path_to_folder>/docs <username>@<server_pub_ip>:/home/<username>
 ```
 
 - Connect to the server.

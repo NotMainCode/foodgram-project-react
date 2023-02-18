@@ -1,5 +1,7 @@
 """Custom viewsets."""
 
+from abc import ABCMeta
+
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -25,17 +27,14 @@ class CustomCreateDestroyViewSet(
     mixins.CreateModelMixin,
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
+    metaclass=ABCMeta,
 ):
     """Base viewset for resources: Favorites, Subscriptions, Shopping list"""
 
+    model = None
     request_instance_field = None
     request_kwarg = None
     error_message = None
-
-    def get_queryset(self):
-        return getattr(self, "model", None).objects.filter(
-            user=self.request.user
-        )
 
     def create(self, request, *args, **kwargs):
         data = {
@@ -52,9 +51,7 @@ class CustomCreateDestroyViewSet(
     @action(methods=("delete",), detail=False)
     def delete(self, request, **kwargs):
         try:
-            getattr(self, "model", None).objects.get(
-                user=request.user, **kwargs
-            ).delete()
+            self.model.objects.get(user=request.user, **kwargs).delete()
         except ObjectDoesNotExist:
             raise serializers.ValidationError({"errors": self.error_message})
         return Response(status=status.HTTP_204_NO_CONTENT)

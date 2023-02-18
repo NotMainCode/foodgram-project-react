@@ -110,21 +110,21 @@ class RecipeViewSet(GetPostPatchDeleteViewSet):
         queryset = Recipe.objects.select_related("author").prefetch_related(
             "tags", "ingredients"
         )
-        if self.request.method == "GET" and self.request.user.is_authenticated:
-            subquery_subscription = Subscription.objects.filter(
-                user=self.request.user, author=OuterRef("pk")
-            )
-            subquery_favorite = Favorite.objects.filter(
-                user=self.request.user, recipe=OuterRef("pk")
-            )
-            subquery_shopping_cart = ShoppingCart.objects.filter(
-                user=self.request.user, recipe=OuterRef("pk")
-            )
-            queryset = queryset.annotate(
-                is_subscribed=(Exists(subquery_subscription)),
-                is_favorited=(Exists(subquery_favorite)),
-                is_in_shopping_cart=(Exists(subquery_shopping_cart)),
-            )
+        user_id = self.request.user.id or None
+        subquery_subscription = Subscription.objects.filter(
+            user_id=user_id, author=OuterRef("pk")
+        )
+        subquery_favorite = Favorite.objects.filter(
+            user_id=user_id, recipe=OuterRef("pk")
+        )
+        subquery_shopping_cart = ShoppingCart.objects.filter(
+            user_id=user_id, recipe=OuterRef("pk")
+        )
+        queryset = queryset.annotate(
+            is_subscribed=(Exists(subquery_subscription)),
+            is_favorited=(Exists(subquery_favorite)),
+            is_in_shopping_cart=(Exists(subquery_shopping_cart)),
+        )
         return queryset
 
     @action(detail=False, permission_classes=(IsAuthenticated,))

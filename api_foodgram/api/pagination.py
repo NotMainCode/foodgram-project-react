@@ -15,8 +15,8 @@ class PageNumberLimitPagination(PageNumberPagination):
 class LimitPagination(PageNumberPagination):
     """Custom pagination: item limit."""
 
-    page_size = settings.DEFAULT_LIMIT
     page_size_query_param = "recipes_limit"
+    page_size = settings.DEFAULT_LIMIT
     max_page_size = settings.MAX_LIMIT
 
     def get_paginated_response(self, data):

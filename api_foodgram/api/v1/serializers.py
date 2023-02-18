@@ -324,9 +324,10 @@ class SubscriptionsSerializer(CustomUserSerializer):
 
     def get_recipes(self, obj):
         request = self.context.get("request")
+        queryset = obj.recipes.all()
+        if request.query_params.get("recipes_limit") is not None:
+            queryset = LimitPagination().paginate_queryset(queryset, request)
         serializer = RecipeBriefSerializer(
-            LimitPagination().paginate_queryset(obj.recipes.all(), request),
-            many=True,
-            context={"request": request},
+            queryset, many=True, context={"request": request}
         )
         return serializer.data

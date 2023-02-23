@@ -147,4 +147,4 @@ docker compose exec web python manage.py dumpdata > db_dump.json
 
 ## Author
 
-[NotMainCode](https://github.com/NotMainCode) (backend, CI/CD)
+[NotMainCode](https://github.com/NotMainCode) (backend, containerization, CI/CD)

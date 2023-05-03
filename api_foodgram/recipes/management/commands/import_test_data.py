@@ -1,8 +1,8 @@
 """Import test data into db from /static/data/*.csv."""
 
 import csv
-import os.path
 import sqlite3
+from os import listdir, path
 
 from django.conf import settings
 from django.core import management
@@ -22,7 +22,7 @@ def fill_table_from_csv(self, db, cursor, filename):
     """Clear table and fill data."""
     try:
         csv_data = open(
-            os.path.join(settings.STATICFILES_DIRS_DATA, filename),
+            path.join(settings.STATICFILES_DIRS_DATA, filename),
             "r",
             encoding="utf8",
         )
@@ -48,7 +48,7 @@ def fill_table_from_csv(self, db, cursor, filename):
 
 def fill_test_data(self):
     """Iterate for all tables, call funcs to prepare and fill data in db."""
-    db = sqlite3.connect(os.path.join(settings.BASE_DIR, "db.sqlite3"))
+    db = sqlite3.connect(path.join(settings.BASE_DIR, "db.sqlite3"))
     cursor = db.cursor()
-    for filename in os.listdir(settings.STATICFILES_DIRS_DATA):
+    for filename in listdir(settings.STATICFILES_DIRS_DATA):
         fill_table_from_csv(self, db, cursor, filename)

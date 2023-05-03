@@ -29,7 +29,7 @@ class CustomCreateDestroyViewSet(
     viewsets.GenericViewSet,
     metaclass=ABCMeta,
 ):
-    """Base viewset for resources: Favorites, Subscriptions, Shopping list"""
+    """Base viewset for resources: Favorites, Subscriptions, Shopping list."""
 
     model = None
     request_instance_field = None

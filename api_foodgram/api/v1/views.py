@@ -1,11 +1,6 @@
 """URLs request handlers of the 'api' application."""
 
-from django.db.models import (
-    Count,
-    Exists,
-    OuterRef,
-    Sum,
-)
+from django.db.models import Count, Exists, OuterRef, Sum
 from django.http.response import HttpResponse
 from django_filters import rest_framework
 from rest_framework import viewsets
@@ -60,7 +55,7 @@ class CustomUserViewSet(GetPostViewSet):
             subquery = Subscription.objects.filter(
                 user=user, author=OuterRef("pk")
             )
-            queryset = queryset.annotate(is_subscribed=(Exists(subquery)))
+            return queryset.annotate(is_subscribed=(Exists(subquery)))
         return queryset
 
     def get_serializer_class(self):
@@ -107,30 +102,25 @@ class RecipeViewSet(GetPostPatchDeleteViewSet):
         return PostPatchRecipeSerializer
 
     def get_queryset(self):
-        queryset = Recipe.objects.select_related("author").prefetch_related(
-            "tags", "ingredients"
-        )
         user_id = self.request.user.id or None
-        subquery_subscription = Subscription.objects.filter(
-            user_id=user_id, author=OuterRef("pk")
-        )
         subquery_favorite = Favorite.objects.filter(
             user_id=user_id, recipe=OuterRef("pk")
         )
         subquery_shopping_cart = ShoppingCart.objects.filter(
             user_id=user_id, recipe=OuterRef("pk")
         )
-        queryset = queryset.annotate(
-            is_subscribed=(Exists(subquery_subscription)),
+        return Recipe.objects.select_related(
+            "author"
+        ).prefetch_related(
+            "tags", "ingredients"
+        ).annotate(
             is_favorited=(Exists(subquery_favorite)),
             is_in_shopping_cart=(Exists(subquery_shopping_cart)),
         )
-        return queryset
 
     @action(detail=False, permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
-        ingredients = [
-            *RecipeIngredient.objects.filter(
+        ingredients = RecipeIngredient.objects.filter(
                 recipe__carts__user=request.user
             ).select_related(
                 "ingredient"
@@ -138,7 +128,6 @@ class RecipeViewSet(GetPostPatchDeleteViewSet):
                 "ingredient__name",
                 "ingredient__measurement_unit",
             ).annotate(Sum("amount")).order_by("ingredient__name")
-        ]
         shopping_list = (
             (" ".join((str(element) for element in ingredient)) + "\n")
             for ingredient in ingredients

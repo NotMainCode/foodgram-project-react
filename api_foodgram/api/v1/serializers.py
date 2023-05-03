@@ -120,7 +120,7 @@ class GetRecipeSerializer(serializers.ModelSerializer):
     """Serializer for Get requests to endpoints of 'Recipes' resource."""
 
     tags = TagSerializer(many=True, read_only=True)
-    author = CustomUserSerializer(read_only=True)
+    author = serializers.SerializerMethodField()
     ingredients = RecipeIngredientsSerializer(
         many=True, read_only=True, source="recipe_ingredient"
     )
@@ -144,6 +144,14 @@ class GetRecipeSerializer(serializers.ModelSerializer):
             "text",
             "cooking_time",
         )
+
+    def get_author(self, obj):
+        user_id = self.context["request"].user.id or None
+        author = obj.author
+        author.is_subscribed = Subscription.objects.filter(
+            user_id=user_id, author=author
+        ).exists()
+        return CustomUserSerializer(author).data
 
 
 class PostPatchRecipeSerializer(GetRecipeSerializer):
@@ -327,7 +335,6 @@ class SubscriptionsSerializer(CustomUserSerializer):
         queryset = obj.recipes.all()
         if request.query_params.get("recipes_limit") is not None:
             queryset = LimitPagination().paginate_queryset(queryset, request)
-        serializer = RecipeBriefSerializer(
+        return RecipeBriefSerializer(
             queryset, many=True, context={"request": request}
-        )
-        return serializer.data
+        ).data

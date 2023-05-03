@@ -33,13 +33,13 @@ class IngredientSearchFilter(filters.SearchFilter):
 
     def filter_queryset(self, request, queryset, view):
         name = request.query_params.get(self.search_param)
-        if name is not None:
-            queryset = queryset.annotate(
-                ingredient_order=Case(
-                    When(name__istartswith=name, then=Value(1)),
-                    When(name__icontains=name, then=Value(2)),
-                    default=0,
-                    output_field=IntegerField(),
-                )
-            ).exclude(ingredient_order=0).order_by("ingredient_order", "name")
-        return queryset
+        if name is None:
+            return queryset
+        return queryset.annotate(
+            ingredient_order=Case(
+                When(name__istartswith=name, then=Value(1)),
+                When(name__icontains=name, then=Value(2)),
+                default=0,
+                output_field=IntegerField(),
+            )
+        ).exclude(ingredient_order=0).order_by("ingredient_order", "name")

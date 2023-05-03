@@ -12,7 +12,7 @@ class StaffAllowedUserAdmin(UserAdmin, StaffAllowedModelAdmin):
     """Table settings for resource 'Users' on the admin site."""
 
     def get_queryset(self, request):
-        """Custom queryset of User model instances."""
+        """Hide staff records for non-superusers."""
         qs = User.objects.all()
         if not request.user.is_superuser:
             qs = qs.filter(is_superuser=False, is_staff=False)
@@ -42,12 +42,12 @@ class StaffAllowedUserAdmin(UserAdmin, StaffAllowedModelAdmin):
     def activate_users(self, request, queryset):
         """Admin actions: activate users."""
         count = queryset.filter(is_active=False).update(is_active=True)
-        self.message_user(request, "Activated {} users.".format(count))
+        self.message_user(request, "Activated {0} users.".format(count))
 
     def deactivate_users(self, request, queryset):
         """Admin actions: deactivate users."""
         count = queryset.filter(is_active=True).update(is_active=False)
-        self.message_user(request, "Deactivated {} users.".format(count))
+        self.message_user(request, "Deactivated {0} users.".format(count))
 
     list_display = (
         "pk",

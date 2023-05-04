@@ -120,7 +120,7 @@ class GetRecipeSerializer(serializers.ModelSerializer):
     """Serializer for Get requests to endpoints of 'Recipes' resource."""
 
     tags = TagSerializer(many=True, read_only=True)
-    author = serializers.SerializerMethodField()
+    author = CustomUserSerializer(read_only=True)
     ingredients = RecipeIngredientsSerializer(
         many=True, read_only=True, source="recipe_ingredient"
     )
@@ -144,14 +144,6 @@ class GetRecipeSerializer(serializers.ModelSerializer):
             "text",
             "cooking_time",
         )
-
-    def get_author(self, obj):
-        user_id = self.context["request"].user.id or None
-        author = obj.author
-        author.is_subscribed = Subscription.objects.filter(
-            user_id=user_id, author=author
-        ).exists()
-        return CustomUserSerializer(author).data
 
 
 class PostPatchRecipeSerializer(GetRecipeSerializer):

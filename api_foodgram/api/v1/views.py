@@ -1,6 +1,6 @@
 """URLs request handlers of the 'api' application."""
 
-from django.db.models import Count, Exists, OuterRef, Sum
+from django.db.models import Count, Exists, OuterRef, Prefetch, Sum
 from django.http.response import HttpResponse
 from django_filters import rest_framework
 from rest_framework import viewsets
@@ -103,16 +103,27 @@ class RecipeViewSet(GetPostPatchDeleteViewSet):
 
     def get_queryset(self):
         user_id = self.request.user.id or None
+        subquery_subscription = Subscription.objects.filter(
+            user_id=user_id, author_id=OuterRef("pk")
+        )
         subquery_favorite = Favorite.objects.filter(
             user_id=user_id, recipe=OuterRef("pk")
         )
         subquery_shopping_cart = ShoppingCart.objects.filter(
             user_id=user_id, recipe=OuterRef("pk")
         )
-        return Recipe.objects.select_related(
-            "author"
-        ).prefetch_related(
-            "tags", "ingredients"
+        return Recipe.objects.prefetch_related(
+            "tags",
+            Prefetch(
+                "recipe_ingredient",
+                queryset=RecipeIngredient.objects.select_related("ingredient"),
+            ),
+            Prefetch(
+                "author",
+                queryset=User.objects.annotate(
+                    is_subscribed=(Exists(subquery_subscription))
+                ),
+            )
         ).annotate(
             is_favorited=(Exists(subquery_favorite)),
             is_in_shopping_cart=(Exists(subquery_shopping_cart)),
@@ -121,13 +132,13 @@ class RecipeViewSet(GetPostPatchDeleteViewSet):
     @action(detail=False, permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
         ingredients = RecipeIngredient.objects.filter(
-                recipe__carts__user=request.user
-            ).select_related(
-                "ingredient"
-            ).values_list(
-                "ingredient__name",
-                "ingredient__measurement_unit",
-            ).annotate(Sum("amount")).order_by("ingredient__name")
+            recipe__carts__user=request.user
+        ).select_related(
+            "ingredient"
+        ).values_list(
+            "ingredient__name",
+            "ingredient__measurement_unit",
+        ).annotate(Sum("amount")).order_by("ingredient__name")
         shopping_list = (
             (" ".join((str(element) for element in ingredient)) + "\n")
             for ingredient in ingredients

@@ -1,3 +1,5 @@
+"""Model constraint tests."""
+
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
@@ -33,6 +35,7 @@ class ModelTest(TestCase):
         )
 
     def test_subscription_model(self):
+        """The 'Subscription' model has constraints."""
         user_subscriber = User.objects.create_user(username="subscriber")
         Subscription.objects.create(
             user=user_subscriber, author=self.user_author
@@ -40,11 +43,11 @@ class ModelTest(TestCase):
         user_message = {
             self.user_author: (
                 "The 'Subscription' model "
-                "does not include the restriction that "
+                "does not include the constraint that "
                 "a subscriber cannot subscribe to itself."
             ),
             user_subscriber: (
-                "The 'Subscription' model does not contain the restriction: "
+                "The 'Subscription' model does not contain the constraint: "
                 "the subscriber and the author together must be unique."
             ),
         }
@@ -59,10 +62,11 @@ class ModelTest(TestCase):
                     )
 
     def test_ingredient_model(self):
+        """The 'Ingredient' model has constraints."""
         with self.assertRaises(
             IntegrityError,
             msg=(
-                "The 'Ingredient' model does not contain the restriction: "
+                "The 'Ingredient' model does not contain the constraint: "
                 "the name and the measurement_unit together must be unique."
             ),
         ):
@@ -72,6 +76,7 @@ class ModelTest(TestCase):
             )
 
     def test_tag_model(self):
+        """Validator for "color" field of "Tag" model is working correctly."""
         invalid_hex_format_color = (
             "123",
             "#1",
@@ -95,11 +100,12 @@ class ModelTest(TestCase):
                 )
 
     def test_recipe_ingredient_through_model(self):
+        """The 'RecipeIngredient' model has constraints."""
         with self.assertRaises(
             IntegrityError,
             msg=(
                 "The 'RecipeIngredient' model "
-                "does not contain the restriction: "
+                "does not contain the constraint: "
                 "the recipe_id and the ingredient_id together must be unique."
             ),
         ):
@@ -110,6 +116,7 @@ class ModelTest(TestCase):
             )
 
     def test_favorite_model(self):
+        """The 'Favorite' model has constraints."""
         favorite_item = Favorite.objects.create(
             user=self.user_author,
             recipe=self.recipe,
@@ -117,7 +124,7 @@ class ModelTest(TestCase):
         with self.assertRaises(
             IntegrityError,
             msg=(
-                "The 'Favorite' model does not contain the restriction: "
+                "The 'Favorite' model does not contain the constraint: "
                 "the user and the recipe together must be unique."
             ),
         ):
@@ -127,6 +134,7 @@ class ModelTest(TestCase):
             )
 
     def test_shopping_cart_model(self):
+        """The 'ShoppingCart' model has constraints."""
         cart_item = ShoppingCart.objects.create(
             user=self.user_author,
             recipe=self.recipe,
@@ -134,7 +142,7 @@ class ModelTest(TestCase):
         with self.assertRaises(
             IntegrityError,
             msg=(
-                "The 'ShoppingCart' model does not contain the restriction: "
+                "The 'ShoppingCart' model does not contain the constraint: "
                 "the user and the recipe together must be unique."
             ),
         ):

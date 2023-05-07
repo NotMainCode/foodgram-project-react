@@ -1,4 +1,4 @@
-"""Model constraint tests."""
+"""Testing constraints for models."""
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction

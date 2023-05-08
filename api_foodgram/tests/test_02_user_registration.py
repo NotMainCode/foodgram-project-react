@@ -1,4 +1,4 @@
-"""Testing user registration."""
+"""Testing user registration and login."""
 
 import unittest
 from http import HTTPStatus
@@ -15,10 +15,9 @@ from users.models import User
     "Endpoint {0} not available)".format(reverse("api:users-list")),
 )
 class UserSignUpTest(APITestCase):
+    """Testing user registration."""
+
     url_signup = reverse("api:users-list")
-    url_set_password = reverse("api:set_password")
-    url_login = reverse("api:login")
-    url_logout = reverse("api:logout")
 
     def test_signup_without_required_field(self):
         """User is not created if the required data is not set."""
@@ -154,3 +153,43 @@ class UserSignUpTest(APITestCase):
                         f"message about a duplicate {field} field."
                     ),
                 )
+
+
+@unittest.skipIf(
+    APIClient().options(reverse("api:login")).status_code
+    == HTTPStatus.NOT_FOUND,
+    "Endpoint {0} not available)".format(reverse("api:login")),
+)
+class UserLoginTest(APITestCase):
+    """Testing user login."""
+
+    def test_login_email_password(self):
+        """User receives a token after providing email and password."""
+        user_email = "user@email.fake"
+        user_password = "user_password"
+        User.objects.create_user(
+            username="User",
+            email=user_email,
+            password=user_password,
+        )
+        url_login = reverse("api:login")
+        response = self.client.post(
+            url_login, data={"email": user_email, "password": user_password}
+        )
+        self.assertEqual(
+            response.status_code,
+            HTTPStatus.OK,
+            msg=(
+                f"Check that a POST request to `{url_login}` with "
+                f"email and password fields returns status {HTTPStatus.OK}"
+            ),
+        )
+        self.assertIn(
+            "auth_token",
+            response.data,
+            msg=(
+                f"Check that a POST request to `{url_login}` "
+                f"with email and password fields returns a response "
+                f"with the 'auth_token' field"
+            ),
+        )

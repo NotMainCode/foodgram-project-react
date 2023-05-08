@@ -16,6 +16,8 @@ from users.models import Subscription, User
 
 
 class ModelTest(TestCase):
+    """Testing constraints for models."""
+
     @classmethod
     def setUpTestData(cls):
         cls.user_author = User.objects.create_user(

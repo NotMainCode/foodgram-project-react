@@ -22,6 +22,11 @@ jobs:
       - name: Test with flake8
         run:
           python -m flake8 --ignore W503, I001 --exclude */migrations/ --max-complexity 10
+      - name: Unittests
+        env:
+          DB_HOST: localhost
+        run:
+          ./manage.py test -v 2
   build_and_push_to_docker_hub:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest

@@ -1,23 +1,16 @@
 """Testing user registration and login."""
 
-import unittest
 from http import HTTPStatus
 
-from django.urls import reverse
-from rest_framework.test import APIClient, APITestCase
+from rest_framework.test import APITestCase
 
 from users.models import User
 
 
-@unittest.skipIf(
-    APIClient().options(reverse("api:users-list")).status_code
-    == HTTPStatus.NOT_FOUND,
-    "Endpoint {0} not available)".format(reverse("api:users-list")),
-)
 class UserSignUpTest(APITestCase):
     """Testing user registration."""
 
-    url_signup = reverse("api:users-list")
+    url_signup = "/api/users/"
 
     def test_signup_without_required_field(self):
         """User is not created if the required data is not set."""
@@ -155,11 +148,6 @@ class UserSignUpTest(APITestCase):
                 )
 
 
-@unittest.skipIf(
-    APIClient().options(reverse("api:login")).status_code
-    == HTTPStatus.NOT_FOUND,
-    "Endpoint {0} not available)".format(reverse("api:login")),
-)
 class UserLoginTest(APITestCase):
     """Testing user login."""
 
@@ -172,7 +160,7 @@ class UserLoginTest(APITestCase):
             email=user_email,
             password=user_password,
         )
-        url_login = reverse("api:login")
+        url_login = "/api/auth/token/login/"
         response = self.client.post(
             url_login, data={"email": user_email, "password": user_password}
         )

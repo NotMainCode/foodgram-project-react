@@ -33,8 +33,8 @@ class URLTest(APITestCase):
                     response.status_code,
                     HTTPStatus.OK,
                     msg=(
-                        f"Page '{public_url}' not found, "
-                        f"check this address in *urls.py*."
+                        f"Page '{public_url}' "
+                        f"is unavailable to anonymous user."
                     ),
                 )
 
@@ -62,8 +62,8 @@ class URLTest(APITestCase):
                     response.status_code,
                     HTTPStatus.OK,
                     msg=(
-                        f"Page '{private_url}' not found, "
-                        f"check this address in *urls.py*."
+                        f"Page '{private_url}' "
+                        f"is unavailable to authenticated user."
                     ),
                 )
 
@@ -86,7 +86,7 @@ class URLTest(APITestCase):
                     response.status_code,
                     HTTPStatus.UNAUTHORIZED,
                     msg=(
-                        f"Page '{private_url}' not found, "
-                        f"check this address in *urls.py*."
+                        f"Page '{private_url}' "
+                        f"must be inaccessible to anonymous user."
                     ),
                 )

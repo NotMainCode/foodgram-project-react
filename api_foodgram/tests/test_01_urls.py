@@ -2,6 +2,7 @@
 
 from http import HTTPStatus
 
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient, APITestCase
 
 from users.models import User
@@ -43,8 +44,12 @@ class URLTest(APITestCase):
         user = User.objects.create_user(
             username="User", email="user@email.fake"
         )
+        Token(user=user).save()
+        token = Token.objects.get(user=user)
         authenticated_client = APIClient()
-        authenticated_client.force_login(user)
+        authenticated_client.credentials(
+            HTTP_AUTHORIZATION=f"Token {token.key}"
+        )
         private_urls = [
             "/api/users/me/",
             "/api/users/set_password/",

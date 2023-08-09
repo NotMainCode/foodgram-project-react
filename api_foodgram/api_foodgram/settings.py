@@ -10,7 +10,7 @@ SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY", "fcyjmjx^xxl967jx=-35tmn7+#8x5pmuit=p7!0g7q)heghjr%"
 )
 
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [os.getenv("SERVER_HOST", "localhost"), "127.0.0.1"]
 
@@ -56,9 +56,9 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-            ],
+            ]
         },
-    },
+    }
 ]
 
 WSGI_APPLICATION = "api_foodgram.wsgi.application"
@@ -120,10 +120,10 @@ AUTH_USER_MODEL = "users.User"
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
+        "rest_framework.permissions.IsAuthenticated"
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.TokenAuthentication"
     ],
 }
 
@@ -142,7 +142,7 @@ if DEBUG:
             "DEFAULT_AUTHENTICATION_CLASSES": [
                 "rest_framework.authentication.TokenAuthentication",
                 "rest_framework.authentication.SessionAuthentication",
-            ],
+            ]
         }
     )
     CORS_ALLOWED_ORIGINS = ("http://localhost:3000",)
@@ -152,9 +152,7 @@ if DEBUG:
 # Djoser settings
 DJOSER = {
     "LOGIN_FIELD": "email",
-    "SERIALIZERS": {
-        "current_user": "api.v1.serializers.CustomUserSerializer",
-    },
+    "SERIALIZERS": {"current_user": "api.v1.serializers.CustomUserSerializer"},
 }
 
 # Pagination options

@@ -15,7 +15,7 @@ class URLTest(APITestCase):
 
     def test_public_urls_available_anonymous(self):
         """Public URLs are available to anonymous user."""
-        public_urls = [
+        public_urls = (
             "/api/users/",
             f"/api/users/{self.url_arg_id}/",
             "/api/auth/token/login/",
@@ -25,7 +25,7 @@ class URLTest(APITestCase):
             f"/api/tags/{self.url_arg_id}/",
             "/api/recipes/",
             f"/api/recipes/{self.url_arg_id}/",
-        ]
+        )
 
         for public_url in public_urls:
             with self.subTest():
@@ -50,7 +50,7 @@ class URLTest(APITestCase):
         authenticated_client.credentials(
             HTTP_AUTHORIZATION=f"Token {token.key}"
         )
-        private_urls = [
+        private_urls = (
             "/api/users/me/",
             "/api/users/set_password/",
             "/api/users/subscriptions/",
@@ -59,7 +59,7 @@ class URLTest(APITestCase):
             f"/api/recipes/{self.url_arg_id}/favorite/",
             f"/api/recipes/{self.url_arg_id}/shopping_cart/",
             "/api/auth/token/logout/",
-        ]
+        )
         for private_url in private_urls:
             with self.subTest():
                 response = authenticated_client.options(private_url)
@@ -74,7 +74,7 @@ class URLTest(APITestCase):
 
     def test_private_urls_not_available_anonymous(self):
         """Private URLs are not available to the anonymous user."""
-        private_urls = [
+        private_urls = (
             "/api/users/me/",
             "/api/users/set_password/",
             "/api/users/subscriptions/",
@@ -83,7 +83,7 @@ class URLTest(APITestCase):
             f"/api/recipes/{self.url_arg_id}/favorite/",
             f"/api/recipes/{self.url_arg_id}/shopping_cart/",
             "/api/auth/token/logout/",
-        ]
+        )
         for private_url in private_urls:
             with self.subTest():
                 response = self.client.options(private_url)

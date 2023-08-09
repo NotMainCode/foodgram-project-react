@@ -23,13 +23,13 @@ class UserSignUpTest(APITestCase):
                 f"with no parameters returns status {HTTPStatus.BAD_REQUEST}"
             ),
         )
-        required_fields = [
+        required_fields = (
             "email",
             "password",
             "username",
             "first_name",
             "last_name",
-        ]
+        )
         for field in required_fields:
             with self.subTest():
                 self.assertIn(

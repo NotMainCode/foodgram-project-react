@@ -66,9 +66,7 @@ class RecipeAdmin(StaffAllowedModelAdmin):
         "tags_display",
     )
     readonly_fields = ("in_favorite",)
-    inlines = [
-        RecipeIngredientsInline,
-    ]
+    inlines = (RecipeIngredientsInline,)
     filter_horizontal = ("tags",)
     search_fields = ("name",)
     list_filter = ("author", "name", "tags")
